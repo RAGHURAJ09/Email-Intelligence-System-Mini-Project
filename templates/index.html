@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Customer Email System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ⏳ Loading Overlay -->
+<div id="loadingOverlay">
+    <div class="loader"></div>
+    <p>Analyzing email with AI…</p>
+</div>
+
+<!-- 🔔 Toast Notification -->
+<div id="toast"></div>
+
+<div class="container">
+    <h1>🤖 AI Customer Email Intelligence System</h1>
+    <p>Analyze customer emails using Artificial Intelligence</p>
+
+    <form method="POST">
+        <textarea name="email" placeholder="Enter customer email..." required></textarea>
+        <button type="submit">Analyze Email</button>
+    </form>
+
+    {% if result %}
+    <div class="result-box">
+        <h3>📊 Analysis Result</h3>
+
+        <p><strong>📌 Intent:</strong> {{ result.intent }}</p>
+        <p><strong>😊 Sentiment:</strong> {{ result.sentiment }}</p>
+        <p><strong>⚡ Priority:</strong> {{ result.priority }}</p>
+
+        <hr>
+
+        <p><strong>✉️ Suggested Reply:</strong></p>
+        <p>{{ result.reply }}</p>
+
+        <hr>
+
+        <p><strong>📧 Email:</strong></p>
+        <p>{{ result.email }}</p>
+    </div>
+    {% endif %}
+
+    <a href="/dashboard" class="dashboard-btn">📊 Open Dashboard</a>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Email Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>📊 AI Email Analysis Dashboard</h1>
+
+    <table>
+        <tr>
+            <th>#</th>
+            <th>Email Text</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Sentiment</th>
+        </tr>
+
+        {% for e in emails %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ e.email }}</td>
+            <td>{{ e.intent }}</td>
+            <td>{{ e.priority }}</td>
+            <td>{{ e.sentiment }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <a href="/" class="dashboard-btn">⬅ Back to Home</a>
+</div>
+</body>
+</html>
