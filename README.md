@@ -2,17 +2,19 @@
 
 <h2 align="center">🏠 Home</h2>
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b69cadfe-3f7f-4dc4-bd72-28c042a826f8" width="700"/>
+  <img src="https://github.com/user-attachments/assets/90dfe1f7-7375-4e2d-8107-d291ed3eaad8" width="700"/>
+
 </p>
 
 <h2 align="center">📊 Dashboard</h2>
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/c2acfdd0-303b-449d-9543-1107738a5130" width="700"/>
+  <img src="https://github.com/user-attachments/assets/1b1c0027-34cb-4bbd-8b50-34b5ed85e5cd" width="700"/>
+
 </p>
 
-<h2 align="center">Project Demo</h2>
+<h2 align="center">🪧 Project Demo</h2>
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/983a438e-dda9-4250-9bb2-ee2022553f06" width="700"/>
+  <img src="https://github.com/user-attachments/assets/a5fe8a63-5be9-4380-b475-6496a13dacee" width="700"/>
 </p>
 
 An **AI + Machine Learning–based web application** that intelligently analyzes customer emails to identify **intent**, **sentiment**, and **priority**, and generates **professional automated replies**.
@@ -68,7 +70,6 @@ This hybrid approach ensures **fast predictions** and **high-quality responses**
 ---
 
 ## 📂 Project Structure
-## 📂 Project Structure
 ```
 customer_email_ai/
 ├── README.md
@@ -92,6 +93,6 @@ customer_email_ai/
 │   └── dashboard.html
 │
 ├── static/
-│   ├── style.css
-│   └── script.js
+    ├── style.css
+    └── script.js
 ```
