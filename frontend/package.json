@@ -1,0 +1,22 @@
+{
+  "name": "customer-email-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "chart.js": "^4.5.1",
+    "framer-motion": "^12.33.0",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^18.2.0",
+    "react-parallax-tilt": "^1.7.319",
+    "react-router-dom": "^6.30.3"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
