@@ -1,401 +1,1001 @@
 text,label,sentiment,priority,urgency,department
-I want a refund because the product is damaged.,complaint,Negative,High,Urgent,support
-Why was my order cancelled automatically?,feedback,Positive,Low,Low,general
-My account was charged twice for the same order.,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,feedback,Positive,Low,Low,general
-I appreciate the excellent customer service.,refund,Negative,High,Urgent,billing
-The item I received is different from what I ordered.,refund,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,refund,Negative,High,Urgent,billing
-The app crashes every time I try to make payment.,delivery_issue,Negative,Medium,Normal,logistics
-How long does delivery usually take?,payment_issue,Negative,High,Urgent,billing
-My account was charged twice for the same order.,complaint,Negative,High,Urgent,support
-The packaging was damaged when delivered.,feedback,Positive,Low,Low,general
-Payment failed but amount was deducted.,refund,Negative,High,Urgent,billing
-I need help changing my shipping address.,complaint,Negative,High,Urgent,support
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-My coupon code is not working.,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,feedback,Positive,Low,Low,general
-My order has not arrived yet. Please check the delivery status.,payment_issue,Negative,High,Urgent,billing
-I need help changing my shipping address.,complaint,Negative,High,Urgent,support
-How long does delivery usually take?,complaint,Negative,High,Urgent,support
-The item I received is different from what I ordered.,feedback,Positive,Low,Low,general
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-The app crashes every time I try to make payment.,refund,Negative,High,Urgent,billing
-The delivery agent did not contact me.,payment_issue,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,feedback,Positive,Low,Low,general
-Thank you for the quick support!,query,Neutral,Low,Low,general
-I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
-Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
-I need help changing my shipping address.,query,Neutral,Low,Low,general
 I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
-Please cancel my order and process a refund.,delivery_issue,Negative,Medium,Normal,logistics
-My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
-My coupon code is not working.,delivery_issue,Negative,Medium,Normal,logistics
-I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
-The packaging was damaged when delivered.,feedback,Positive,Low,Low,general
-Thank you for resolving my issue so quickly.,complaint,Negative,High,Urgent,support
 Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
 The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
-Can I change the payment method after ordering?,complaint,Negative,High,Urgent,support
-Can you tell me the price of this item?,payment_issue,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-How long does delivery usually take?,query,Neutral,Low,Low,general
-Please update me on the status of my refund.,complaint,Negative,High,Urgent,support
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-Can I change the payment method after ordering?,complaint,Negative,High,Urgent,support
-I want a refund because the product is damaged.,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
-The product quality is very poor and unacceptable.,query,Neutral,Low,Low,general
-The packaging was damaged when delivered.,delivery_issue,Negative,Medium,Normal,logistics
-The app crashes every time I try to make payment.,complaint,Negative,High,Urgent,support
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,refund,Negative,High,Urgent,billing
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
 How long does delivery usually take?,query,Neutral,Low,Low,general
 Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,payment_issue,Negative,High,Urgent,billing
-Can you tell me the price of this item?,feedback,Positive,Low,Low,general
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,complaint,Negative,High,Urgent,support
-Please cancel my order and process a refund.,feedback,Positive,Low,Low,general
-My order has not arrived yet. Please check the delivery status.,query,Neutral,Low,Low,general
-My account was charged twice for the same order.,complaint,Negative,High,Urgent,support
-The app crashes every time I try to make payment.,query,Neutral,Low,Low,general
-My order has not arrived yet. Please check the delivery status.,payment_issue,Negative,High,Urgent,billing
-Thank you for the quick support!,delivery_issue,Negative,Medium,Normal,logistics
-Please update me on the status of my refund.,payment_issue,Negative,High,Urgent,billing
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-How long does delivery usually take?,payment_issue,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,query,Neutral,Low,Low,general
-Thank you for the quick support!,query,Neutral,Low,Low,general
-Thank you for resolving my issue so quickly.,complaint,Negative,High,Urgent,support
-I need help changing my shipping address.,complaint,Negative,High,Urgent,support
-The item I received is different from what I ordered.,query,Neutral,Low,Low,general
-Can you tell me the price of this item?,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,delivery_issue,Negative,Medium,Normal,logistics
-I want a refund because the product is damaged.,delivery_issue,Negative,Medium,Normal,logistics
-My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for resolving my issue so quickly.,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,payment_issue,Negative,High,Urgent,billing
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-The delivery agent did not contact me.,payment_issue,Negative,High,Urgent,billing
-The delivery agent did not contact me.,feedback,Positive,Low,Low,general
-Can I change the payment method after ordering?,complaint,Negative,High,Urgent,support
-My account was charged twice for the same order.,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-My order has not arrived yet. Please check the delivery status.,complaint,Negative,High,Urgent,support
-My account was charged twice for the same order.,query,Neutral,Low,Low,general
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
-Can I change the payment method after ordering?,query,Neutral,Low,Low,general
-My order has not arrived yet. Please check the delivery status.,feedback,Positive,Low,Low,general
-I appreciate the excellent customer service.,payment_issue,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,delivery_issue,Negative,Medium,Normal,logistics
-My order has not arrived yet. Please check the delivery status.,feedback,Positive,Low,Low,general
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-Can I change the payment method after ordering?,query,Neutral,Low,Low,general
-Please cancel my order and process a refund.,complaint,Negative,High,Urgent,support
-The product quality is very poor and unacceptable.,delivery_issue,Negative,Medium,Normal,logistics
-Can I change the payment method after ordering?,complaint,Negative,High,Urgent,support
-Can you tell me the price of this item?,refund,Negative,High,Urgent,billing
-My order has not arrived yet. Please check the delivery status.,query,Neutral,Low,Low,general
-Please update me on the status of my refund.,payment_issue,Negative,High,Urgent,billing
-Thank you for resolving my issue so quickly.,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,delivery_issue,Negative,Medium,Normal,logistics
-The packaging was damaged when delivered.,payment_issue,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,delivery_issue,Negative,Medium,Normal,logistics
-Why was my order cancelled automatically?,delivery_issue,Negative,Medium,Normal,logistics
-Please cancel my order and process a refund.,payment_issue,Negative,High,Urgent,billing
-How long does delivery usually take?,feedback,Positive,Low,Low,general
-Can I change the payment method after ordering?,refund,Negative,High,Urgent,billing
-The product quality is very poor and unacceptable.,delivery_issue,Negative,Medium,Normal,logistics
-Please cancel my order and process a refund.,query,Neutral,Low,Low,general
-I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
-I want a refund because the product is damaged.,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,refund,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for resolving my issue so quickly.,delivery_issue,Negative,Medium,Normal,logistics
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-The app crashes every time I try to make payment.,feedback,Positive,Low,Low,general
-Can you tell me the price of this item?,delivery_issue,Negative,Medium,Normal,logistics
-How long does delivery usually take?,feedback,Positive,Low,Low,general
-My coupon code is not working.,complaint,Negative,High,Urgent,support
-Please cancel my order and process a refund.,delivery_issue,Negative,Medium,Normal,logistics
-My account was charged twice for the same order.,refund,Negative,High,Urgent,billing
-The delivery agent did not contact me.,payment_issue,Negative,High,Urgent,billing
-Please update me on the status of my refund.,query,Neutral,Low,Low,general
-The packaging was damaged when delivered.,payment_issue,Negative,High,Urgent,billing
-Payment failed but amount was deducted.,feedback,Positive,Low,Low,general
-Can you tell me the price of this item?,payment_issue,Negative,High,Urgent,billing
-Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-I appreciate the excellent customer service.,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
-I appreciate the excellent customer service.,query,Neutral,Low,Low,general
-The delivery agent did not contact me.,refund,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,refund,Negative,High,Urgent,billing
-My account was charged twice for the same order.,query,Neutral,Low,Low,general
-My coupon code is not working.,delivery_issue,Negative,Medium,Normal,logistics
-My account was charged twice for the same order.,complaint,Negative,High,Urgent,support
-Payment failed but amount was deducted.,refund,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
 Thank you for the quick support!,feedback,Positive,Low,Low,general
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-I want a refund because the product is damaged.,payment_issue,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,delivery_issue,Negative,Medium,Normal,logistics
-Can you tell me the price of this item?,payment_issue,Negative,High,Urgent,billing
-Please update me on the status of my refund.,query,Neutral,Low,Low,general
-Thank you for the quick support!,query,Neutral,Low,Low,general
-My coupon code is not working.,complaint,Negative,High,Urgent,support
-How long does delivery usually take?,payment_issue,Negative,High,Urgent,billing
-How long does delivery usually take?,complaint,Negative,High,Urgent,support
-The delivery agent did not contact me.,query,Neutral,Low,Low,general
-Thank you for the quick support!,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,payment_issue,Negative,High,Urgent,billing
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,delivery_issue,Negative,Medium,Normal,logistics
-The product quality is very poor and unacceptable.,refund,Negative,High,Urgent,billing
-My order has not arrived yet. Please check the delivery status.,feedback,Positive,Low,Low,general
-I appreciate the excellent customer service.,complaint,Negative,High,Urgent,support
-The product quality is very poor and unacceptable.,payment_issue,Negative,High,Urgent,billing
 The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,query,Neutral,Low,Low,general
-The packaging was damaged when delivered.,query,Neutral,Low,Low,general
-The delivery agent did not contact me.,query,Neutral,Low,Low,general
-I need help changing my shipping address.,feedback,Positive,Low,Low,general
-Why was my order cancelled automatically?,feedback,Positive,Low,Low,general
-The packaging was damaged when delivered.,refund,Negative,High,Urgent,billing
-Payment failed but amount was deducted.,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,payment_issue,Negative,High,Urgent,billing
-Can I change the payment method after ordering?,feedback,Positive,Low,Low,general
-I need help changing my shipping address.,query,Neutral,Low,Low,general
-The product quality is very poor and unacceptable.,refund,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,delivery_issue,Negative,Medium,Normal,logistics
-The item I received is different from what I ordered.,query,Neutral,Low,Low,general
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,complaint,Negative,High,Urgent,support
-Thank you for resolving my issue so quickly.,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,complaint,Negative,High,Urgent,support
-Thank you for the quick support!,query,Neutral,Low,Low,general
-My order has not arrived yet. Please check the delivery status.,payment_issue,Negative,High,Urgent,billing
-Can you tell me the price of this item?,delivery_issue,Negative,Medium,Normal,logistics
-The delivery agent did not contact me.,refund,Negative,High,Urgent,billing
-Please update me on the status of my refund.,delivery_issue,Negative,Medium,Normal,logistics
-My coupon code is not working.,complaint,Negative,High,Urgent,support
-Please update me on the status of my refund.,query,Neutral,Low,Low,general
-Thank you for the quick support!,feedback,Positive,Low,Low,general
-The item I received is different from what I ordered.,delivery_issue,Negative,Medium,Normal,logistics
-Please update me on the status of my refund.,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,refund,Negative,High,Urgent,billing
-I need help changing my shipping address.,delivery_issue,Negative,Medium,Normal,logistics
-Can I change the payment method after ordering?,delivery_issue,Negative,Medium,Normal,logistics
-Can you tell me the price of this item?,delivery_issue,Negative,Medium,Normal,logistics
-My order has not arrived yet. Please check the delivery status.,complaint,Negative,High,Urgent,support
-My account was charged twice for the same order.,query,Neutral,Low,Low,general
-How long does delivery usually take?,refund,Negative,High,Urgent,billing
-The app crashes every time I try to make payment.,query,Neutral,Low,Low,general
-Thank you for resolving my issue so quickly.,payment_issue,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,payment_issue,Negative,High,Urgent,billing
-Can you tell me the price of this item?,refund,Negative,High,Urgent,billing
-Can I change the payment method after ordering?,payment_issue,Negative,High,Urgent,billing
-Payment failed but amount was deducted.,refund,Negative,High,Urgent,billing
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-Please update me on the status of my refund.,delivery_issue,Negative,Medium,Normal,logistics
-How long does delivery usually take?,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,feedback,Positive,Low,Low,general
-Why was my order cancelled automatically?,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,payment_issue,Negative,High,Urgent,billing
-My account was charged twice for the same order.,query,Neutral,Low,Low,general
-Thank you for the quick support!,feedback,Positive,Low,Low,general
-My account was charged twice for the same order.,refund,Negative,High,Urgent,billing
-How long does delivery usually take?,refund,Negative,High,Urgent,billing
-The item I received is different from what I ordered.,refund,Negative,High,Urgent,billing
-The item I received is different from what I ordered.,query,Neutral,Low,Low,general
-Can you tell me the price of this item?,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
-Please cancel my order and process a refund.,payment_issue,Negative,High,Urgent,billing
-My coupon code is not working.,feedback,Positive,Low,Low,general
-Can you tell me the price of this item?,query,Neutral,Low,Low,general
-I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
-Can I change the payment method after ordering?,payment_issue,Negative,High,Urgent,billing
-Please cancel my order and process a refund.,payment_issue,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,delivery_issue,Negative,Medium,Normal,logistics
-The item I received is different from what I ordered.,feedback,Positive,Low,Low,general
-The packaging was damaged when delivered.,complaint,Negative,High,Urgent,support
-Why was my order cancelled automatically?,delivery_issue,Negative,Medium,Normal,logistics
-Can I change the payment method after ordering?,feedback,Positive,Low,Low,general
-Can you tell me the price of this item?,query,Neutral,Low,Low,general
-The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for the quick support!,delivery_issue,Negative,Medium,Normal,logistics
-My account was charged twice for the same order.,feedback,Positive,Low,Low,general
-I need help changing my shipping address.,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for resolving my issue so quickly.,complaint,Negative,High,Urgent,support
-I want a refund because the product is damaged.,complaint,Negative,High,Urgent,support
-My coupon code is not working.,feedback,Positive,Low,Low,general
-Payment failed but amount was deducted.,feedback,Positive,Low,Low,general
-The product quality is very poor and unacceptable.,delivery_issue,Negative,Medium,Normal,logistics
-Payment failed but amount was deducted.,feedback,Positive,Low,Low,general
 Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
-The app crashes every time I try to make payment.,feedback,Positive,Low,Low,general
-Thank you for the quick support!,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for resolving my issue so quickly.,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,payment_issue,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,feedback,Positive,Low,Low,general
-Can I change the payment method after ordering?,delivery_issue,Negative,Medium,Normal,logistics
-My coupon code is not working.,feedback,Positive,Low,Low,general
-How long does delivery usually take?,query,Neutral,Low,Low,general
-I appreciate the excellent customer service.,refund,Negative,High,Urgent,billing
-The product quality is very poor and unacceptable.,feedback,Positive,Low,Low,general
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-My account was charged twice for the same order.,delivery_issue,Negative,Medium,Normal,logistics
-My account was charged twice for the same order.,complaint,Negative,High,Urgent,support
-Can you tell me the price of this item?,complaint,Negative,High,Urgent,support
-I appreciate the excellent customer service.,query,Neutral,Low,Low,general
-Can you tell me the price of this item?,feedback,Positive,Low,Low,general
-I want a refund because the product is damaged.,query,Neutral,Low,Low,general
-How long does delivery usually take?,complaint,Negative,High,Urgent,support
-Thank you for the quick support!,payment_issue,Negative,High,Urgent,billing
-The item I received is different from what I ordered.,feedback,Positive,Low,Low,general
-I want a refund because the product is damaged.,payment_issue,Negative,High,Urgent,billing
-I need help changing my shipping address.,feedback,Positive,Low,Low,general
-My coupon code is not working.,payment_issue,Negative,High,Urgent,billing
-The app crashes every time I try to make payment.,complaint,Negative,High,Urgent,support
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-My order has not arrived yet. Please check the delivery status.,payment_issue,Negative,High,Urgent,billing
-How long does delivery usually take?,refund,Negative,High,Urgent,billing
-Please cancel my order and process a refund.,delivery_issue,Negative,Medium,Normal,logistics
-I want a refund because the product is damaged.,payment_issue,Negative,High,Urgent,billing
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
 The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
-Thank you for resolving my issue so quickly.,query,Neutral,Low,Low,general
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
 The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
-The delivery agent did not contact me.,query,Neutral,Low,Low,general
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
 Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
-My coupon code is not working.,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,refund,Negative,High,Urgent,billing
-Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
-My coupon code is not working.,refund,Negative,High,Urgent,billing
-Thank you for the quick support!,delivery_issue,Negative,Medium,Normal,logistics
-The delivery agent did not contact me.,refund,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,delivery_issue,Negative,Medium,Normal,logistics
-I appreciate the excellent customer service.,payment_issue,Negative,High,Urgent,billing
-Please update me on the status of my refund.,delivery_issue,Negative,Medium,Normal,logistics
-The packaging was damaged when delivered.,complaint,Negative,High,Urgent,support
-My coupon code is not working.,payment_issue,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,refund,Negative,High,Urgent,billing
-My account was charged twice for the same order.,refund,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
 Thank you for the quick support!,feedback,Positive,Low,Low,general
-Thank you for the quick support!,delivery_issue,Negative,Medium,Normal,logistics
-My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
-The packaging was damaged when delivered.,payment_issue,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,delivery_issue,Negative,Medium,Normal,logistics
-My coupon code is not working.,query,Neutral,Low,Low,general
-I appreciate the excellent customer service.,payment_issue,Negative,High,Urgent,billing
-The product quality is very poor and unacceptable.,refund,Negative,High,Urgent,billing
-Please cancel my order and process a refund.,payment_issue,Negative,High,Urgent,billing
-Can I change the payment method after ordering?,refund,Negative,High,Urgent,billing
-Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
-Can you tell me the price of this item?,complaint,Negative,High,Urgent,support
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
-Please cancel my order and process a refund.,query,Neutral,Low,Low,general
-The product quality is very poor and unacceptable.,query,Neutral,Low,Low,general
-Why was my order cancelled automatically?,query,Neutral,Low,Low,general
-Can I change the payment method after ordering?,query,Neutral,Low,Low,general
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-Can you tell me the price of this item?,delivery_issue,Negative,Medium,Normal,logistics
-My order has not arrived yet. Please check the delivery status.,feedback,Positive,Low,Low,general
-I need help changing my shipping address.,refund,Negative,High,Urgent,billing
-Please cancel my order and process a refund.,complaint,Negative,High,Urgent,support
-My coupon code is not working.,complaint,Negative,High,Urgent,support
-Payment failed but amount was deducted.,complaint,Negative,High,Urgent,support
-The product quality is very poor and unacceptable.,query,Neutral,Low,Low,general
-Thank you for resolving my issue so quickly.,payment_issue,Negative,High,Urgent,billing
-Can you tell me the price of this item?,delivery_issue,Negative,Medium,Normal,logistics
-The app crashes every time I try to make payment.,delivery_issue,Negative,Medium,Normal,logistics
-Thank you for resolving my issue so quickly.,delivery_issue,Negative,Medium,Normal,logistics
-Please update me on the status of my refund.,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,query,Neutral,Low,Low,general
-Please cancel my order and process a refund.,payment_issue,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,refund,Negative,High,Urgent,billing
-The product quality is very poor and unacceptable.,feedback,Positive,Low,Low,general
-Thank you for resolving my issue so quickly.,refund,Negative,High,Urgent,billing
-I want a refund because the product is damaged.,delivery_issue,Negative,Medium,Normal,logistics
-I want a refund because the product is damaged.,feedback,Positive,Low,Low,general
-I need help changing my shipping address.,complaint,Negative,High,Urgent,support
-Please cancel my order and process a refund.,complaint,Negative,High,Urgent,support
-The app crashes every time I try to make payment.,refund,Negative,High,Urgent,billing
-Can you tell me the price of this item?,delivery_issue,Negative,Medium,Normal,logistics
-I need help changing my shipping address.,complaint,Negative,High,Urgent,support
-I appreciate the excellent customer service.,refund,Negative,High,Urgent,billing
-Please update me on the status of my refund.,delivery_issue,Negative,Medium,Normal,logistics
-Can I change the payment method after ordering?,feedback,Positive,Low,Low,general
-Thank you for resolving my issue so quickly.,query,Neutral,Low,Low,general
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,delivery_issue,Negative,Medium,Normal,logistics
-My coupon code is not working.,payment_issue,Negative,High,Urgent,billing
-My account was charged twice for the same order.,refund,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
-Can you tell me the price of this item?,complaint,Negative,High,Urgent,support
-Please cancel my order and process a refund.,delivery_issue,Negative,Medium,Normal,logistics
-How long does delivery usually take?,query,Neutral,Low,Low,general
-Can you tell me the price of this item?,feedback,Positive,Low,Low,general
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-The product quality is very poor and unacceptable.,query,Neutral,Low,Low,general
-How long does delivery usually take?,query,Neutral,Low,Low,general
-How long does delivery usually take?,complaint,Negative,High,Urgent,support
-The app crashes every time I try to make payment.,feedback,Positive,Low,Low,general
-Please update me on the status of my refund.,feedback,Positive,Low,Low,general
-The item I received is different from what I ordered.,query,Neutral,Low,Low,general
-Please cancel my order and process a refund.,payment_issue,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
-Please update me on the status of my refund.,delivery_issue,Negative,Medium,Normal,logistics
-Payment failed but amount was deducted.,query,Neutral,Low,Low,general
-Please cancel my order and process a refund.,delivery_issue,Negative,Medium,Normal,logistics
-Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
-The product quality is very poor and unacceptable.,query,Neutral,Low,Low,general
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-I appreciate the excellent customer service.,complaint,Negative,High,Urgent,support
-The app crashes every time I try to make payment.,feedback,Positive,Low,Low,general
-My account was charged twice for the same order.,query,Neutral,Low,Low,general
-Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
 The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
-How long does delivery usually take?,feedback,Positive,Low,Low,general
-The app crashes every time I try to make payment.,feedback,Positive,Low,Low,general
 Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
-The delivery agent did not contact me.,complaint,Negative,High,Urgent,support
-Payment failed but amount was deducted.,complaint,Negative,High,Urgent,support
-My order has not arrived yet. Please check the delivery status.,feedback,Positive,Low,Low,general
-Payment failed but amount was deducted.,delivery_issue,Negative,Medium,Normal,logistics
-I want a refund because the product is damaged.,complaint,Negative,High,Urgent,support
-Thank you for the quick support!,refund,Negative,High,Urgent,billing
-Why was my order cancelled automatically?,payment_issue,Negative,High,Urgent,billing
-Thank you for the quick support!,complaint,Negative,High,Urgent,support
-I appreciate the excellent customer service.,payment_issue,Negative,High,Urgent,billing
-The item I received is different from what I ordered.,query,Neutral,Low,Low,general
-Can you tell me the price of this item?,payment_issue,Negative,High,Urgent,billing
-My coupon code is not working.,delivery_issue,Negative,Medium,Normal,logistics
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
-The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
 How long does delivery usually take?,query,Neutral,Low,Low,general
-My account was charged twice for the same order.,complaint,Negative,High,Urgent,support
-Please update me on the status of my refund.,refund,Negative,High,Urgent,billing
-Please cancel my order and process a refund.,complaint,Negative,High,Urgent,support
-I appreciate the excellent customer service.,payment_issue,Negative,High,Urgent,billing
-My coupon code is not working.,feedback,Positive,Low,Low,general
-My coupon code is not working.,refund,Negative,High,Urgent,billing
-How long does delivery usually take?,refund,Negative,High,Urgent,billing
-I need help changing my shipping address.,feedback,Positive,Low,Low,general
-How long does delivery usually take?,delivery_issue,Negative,Medium,Normal,logistics
-The item I received is different from what I ordered.,payment_issue,Negative,High,Urgent,billing
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
+I want a refund because the product is damaged.,refund,Negative,High,Urgent,billing
+Why was my order cancelled automatically?,complaint,Negative,High,Urgent,support
+My account was charged twice for the same order.,payment_issue,Negative,High,Urgent,billing
+My order has not arrived yet. Please check the delivery status.,delivery_issue,Negative,Medium,Normal,logistics
+I appreciate the excellent customer service.,feedback,Positive,Low,Low,general
+The item I received is different from what I ordered.,complaint,Negative,High,Urgent,support
+The packaging was damaged when delivered.,complaint,Negative,Medium,Normal,logistics
+The app crashes every time I try to make payment.,payment_issue,Negative,High,Urgent,tech
+How long does delivery usually take?,query,Neutral,Low,Low,general
+Payment failed but amount was deducted.,payment_issue,Negative,High,Urgent,billing
+I need help changing my shipping address.,delivery_issue,Neutral,Medium,Normal,logistics
+My coupon code is not working.,payment_issue,Negative,Medium,Normal,billing
+Thank you for the quick support!,feedback,Positive,Low,Low,general
+The delivery agent did not contact me.,delivery_issue,Negative,Medium,Normal,logistics
+Thank you for resolving my issue so quickly.,feedback,Positive,Low,Low,general
+Please cancel my order and process a refund.,refund,Negative,High,Urgent,billing
+Can I change the payment method after ordering?,query,Neutral,Low,Low,support
+Can you tell me the price of this item?,query,Neutral,Low,Low,sales
+Please update me on the status of my refund.,refund,Neutral,Medium,Normal,billing
+The product quality is very poor and unacceptable.,complaint,Negative,High,Urgent,support
+Where is my order?,delivery_issue,Negative,Medium,Normal,logistics
+I have not received my refund yet.,refund,Negative,High,Urgent,billing
+Great job on the delivery!,feedback,Positive,Low,Low,general
+The payment page is stuck.,payment_issue,Negative,High,Urgent,tech
+I want to return this item.,refund,Neutral,Medium,Normal,billing
+This is the wrong size.,complaint,Negative,Medium,Normal,support
+Can I speak to an agent?,query,Neutral,Low,Low,support
+Is this item in stock?,query,Neutral,Low,Low,sales
+My invoice is incorrect.,payment_issue,Negative,Medium,Normal,billing
+The delivery was late.,delivery_issue,Negative,Medium,Normal,logistics
+I love your app!,feedback,Positive,Low,Low,general
+Stop sending me emails.,complaint,Negative,Low,Low,general
+I need to change my password.,query,Neutral,Low,Low,tech
+Do you offer international shipping?,query,Neutral,Low,Low,sales
+My card was declined.,payment_issue,Negative,High,Urgent,billing
+I want to cancel my subscription.,query,Neutral,Medium,Normal,billing
+The color is different from the picture.,complaint,Negative,Medium,Normal,support
+Fast shipping thanks.,feedback,Positive,Low,Low,general
+Where can I track my order?,query,Neutral,Low,Low,logistics
+I did not authorize this transaction.,payment_issue,Negative,High,Urgent,billing
+Who do I contact for partnership?,query,Neutral,Low,Low,general
+The zip code is wrong.,delivery_issue,Negative,Medium,Normal,logistics
+I need a receipt.,query,Neutral,Low,Low,billing
+This product is fake.,complaint,Negative,High,Urgent,legal
+Can you expedite my shipping?,delivery_issue,Neutral,Medium,Normal,logistics
+The discount code expired.,query,Negative,Low,Low,sales
+I am very happy with the purchase.,feedback,Positive,Low,Low,general
+My account is locked.,query,Negative,High,Urgent,tech
+I want to talk to a manager.,complaint,Negative,High,Urgent,support
+Refund me immediately.,refund,Negative,High,Urgent,billing
