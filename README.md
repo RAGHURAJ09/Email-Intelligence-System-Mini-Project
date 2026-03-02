@@ -1,0 +1,134 @@
+<div align="center">
+  <h1 align="center">Customer Email Intelligence AI System</h1>
+  <p align="center">
+    <strong>An automated, machine learning-powered triage platform for customer support emails.</strong>
+  </p>
+</div>
+
+<br />
+
+## 📖 About The Project
+
+In today's fast-paced digital marketplace, businesses receive thousands of customer support emails daily. Manually reading, categorizing, and prioritizing these emails is highly time-consuming and prone to human error. Customer satisfaction drops significantly when urgent issues (like a payment failure or service downtime) get buried under general queries.
+
+**The Solution:** This mini-project is an automated **Email Intelligence System** that leverages Natural Language Processing (NLP) to read incoming customer emails in real-time. It instantly extracts the *Intent* (what the user wants), analyzes the *Sentiment* (how the user represents their feeling), and automatically assigns a *Priority level* to help support agents resolve critical issues first.
+
+---
+
+## ✨ Core Features
+
+* **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Technical Support, Query) reducing manual sorting time.
+* **😡 Sentiment Analysis:** Detects the emotional tone of the email (Positive, Negative, Neutral) to gauge customer satisfaction instantly.
+* **🚨 Priority Flagging:** Automatically tags emails as High, Medium, or Low urgency based on a combination of intent and sentiment.
+* **🔒 Secure Authentication:** Features a robust JWT-less local authentication system with `pbkdf2:sha256` password hashing, alongside **Google OAuth** powered by Supabase.
+* **📊 Historical Auditing:** Fully integrated PostgreSQL database saves past analysis queries chronologically for logged-in users.
+* **🎨 Modern UI/UX:** A highly responsive, neo-futuristic user interface built with React, featuring frosted glass aesthetics and fluid Framer Motion animations.
+
+---
+
+## 🛠️ Technology Stack
+
+**Frontend Interface:**
+* **Framework:** React.js (Vite)
+* **Styling:** Custom CSS (Dark/Neon Glassmorphism Theme)
+* **Animation:** Framer Motion
+* **Routing:** React Router DOM
+
+**Backend API:**
+* **Framework:** Python 3 Flask
+* **Cross-Origin:** Flask-CORS
+* **Machine Learning:** Scikit-Learn, NLTK
+* **Serialization:** Pickle
+
+**Database & Security:**
+* **RDBMS:** PostgreSQL
+* **ORM:** Flask-SQLAlchemy
+* **Security:** Werkzeug Security (Password Hashing)
+* **3rd Party Auth:** Supabase (Google Sign-In)
+
+---
+
+## 📈 Machine Learning Workflow
+
+This project utilizes a custom-trained **Logistic Regression** pipeline, selected for its highly efficient text classification speeds:
+
+1. **Preprocessing (NLTK):** User text is lowercased, stripped of punctuation, and purged of common stop words.
+2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words (e.g., "broken", "refund") and assign numerical value.
+3. **Multi-Model Prediction:** The vector is fed simultaneously into three distinct `.pkl` models to individually predict Intent, Sentiment, and Priority. 
+4. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is extremely low (<40%), it safely defaults to 'Query' | 'Neutral' | 'Low' to prevent hallucination fallbacks.
+
+---
+
+## 📂 Project Structure
+
+```text
+Customer-Email-Intelligence-System/
+│
+├── backend/
+│   ├── app.py                   # Main Flask Application & API Routes
+│   ├── model.pkl                # Trained Scikit-Learn Models (Intent/Priority/Sentiment)
+│   ├── vectorizer.pkl           # Trained TF-IDF Text Vectorizer
+│   ├── requirements.txt         # Python dependencies
+│   └── .env                     # Database URIs & Secret Keys
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/          # Reusable UI Elements (Navbar, Hero, Buttons)
+│   │   ├── pages/               # Main Route Views (Home, Login, Signup, Documentation)
+│   │   ├── utils/               # Helpers (Supabase client, Sound Effects)
+│   │   ├── App.jsx              # React Router Entry Matrix
+│   │   └── index.css            # Global CSS styling & design system
+│   ├── package.json             # NPM dependencies
+│   └── vite.config.js
+│
+└── README.md
+```
+
+---
+
+## 🚀 Installation & Setup 
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/RAGHURAJ09/Email-Intelligence-System-Mini-Project.git
+cd Email-Intelligence-System-Mini-Project
+```
+
+### 2. Configure Database & Environment
+1. Create a local **PostgreSQL** database. 
+2. Create a `.env` file in the `/backend` folder.
+3. Add your database connection string to `.env`:
+   ```env
+   DATABASE_URL=postgresql://username:password@localhost:5432/your_database_name
+   ```
+
+### 3. Backend Setup (Flask)
+```bash
+cd backend
+python -m venv venv
+source venv/Scripts/activate  # (Windows)
+# OR source venv/bin/activate # (Mac/Linux)
+
+pip install flask flask-cors flask-sqlalchemy scikit-learn nltk python-dotenv werkzeug
+python app.py
+```
+*The Flask API will run on http://127.0.0.1:5000 and automatically construct the DB tables.*
+
+### 4. Frontend Setup (React/Vite)
+Open a new terminal window:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*The React Client will launch on http://127.0.0.1:5173*
+
+---
+
+## 🔮 Future Enhancements
+* Integrate **Large Language Model (LLM) APIs** (like ChatGPT or Claude) to automatically draft highly contextual email replies based on intent.
+* Wire directly into the **Gmail API / Outlook API** to autonomously scrape and classify a business's live, unread support inbox.
+* Introduce an **Admin Dashboard** utilizing Chart.js to visualize sentiment trends over monthly traffic.
+
+---
+*Created as an academic mini-project to demonstrate the seamless integration of Data Science/NLP modeling directly into a modern full-stack web application.*
