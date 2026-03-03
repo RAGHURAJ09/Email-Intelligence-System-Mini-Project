@@ -172,9 +172,13 @@ def get_history(user):
 # -------------------------
 # SERVE REACT BUILD
 # -------------------------
-@app.route("/")
-def serve():
-    return send_from_directory(app.static_folder, "index.html")
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, "index.html")
 
 
 # -------------------------
@@ -216,4 +220,7 @@ def generate_response():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    
+    # Use the port assigned by Render (or fallback to 5000 locally)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
