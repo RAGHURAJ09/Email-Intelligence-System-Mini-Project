@@ -127,6 +127,11 @@ body {
   z-index: 10;
 }
 
+.dashboard-container {
+  padding-top: 80px;
+  min-height: 100vh;
+}
+
 .center {
   min-height: calc(100vh - 64px);
   padding-top: 80px;
@@ -800,4 +805,175 @@ input[type="password"]::-ms-clear:hover {
 
 .activity-item:last-child {
   margin-bottom: 0;
+}
+
+/* =========================
+   ANIMATIONS & LOADERS
+========================= */
+
+@keyframes pulse-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-loader {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: pulse-shimmer 2s infinite linear;
+  border-radius: 8px;
+}
+
+.skeleton-text {
+  height: 12px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 60%;
+  margin-bottom: 16px;
+}
+
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .main-chart-card {
+    grid-column: span 2;
+  }
+
+  .recent-activity-card {
+    grid-column: span 2;
+    grid-row: auto;
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  /* Navbar */
+  .nav {
+    padding: 12px 20px;
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+
+  .nav>div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .nav a,
+  .nav button {
+    margin-left: 0;
+    font-size: 13px;
+  }
+
+  /* Core Layouts */
+  .center,
+  .dashboard-container {
+    padding-top: 140px;
+    /* Account for wrapped navbar */
+  }
+
+  .hero-tech,
+  .analyzer-container,
+  .auth-wrapper {
+    padding-top: 120px !important;
+  }
+
+  .hero-gradient-text {
+    font-size: 36px;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+  }
+
+  /* Analyzer / Home View */
+  .analyzer-card {
+    padding: 20px 16px;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-group button {
+    width: 100%;
+  }
+
+  .result-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .result-val {
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  /* Dashboard View */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    padding: 20px 10px;
+  }
+
+  .main-chart-card,
+  .recent-activity-card,
+  .stat-card {
+    grid-column: span 1;
+  }
+
+  .stat-value {
+    font-size: 26px;
+  }
+
+  /* Modal Overlays */
+  .modal-content {
+    margin: 10px;
+    max-height: 85vh;
+  }
+
+  .modal-meta {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Auth / Login */
+  .auth-card {
+    width: 100%;
+    max-width: 90vw;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+
+  /* Extra small devices fixes */
+  .hero-gradient-text {
+    font-size: 30px;
+  }
+
+  .team-card {
+    width: 100% !important;
+    max-width: 320px;
+  }
 }

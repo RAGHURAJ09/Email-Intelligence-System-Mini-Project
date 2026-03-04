@@ -35,8 +35,11 @@ export default function Home() {
     try {
       const data = await analyzeEmail(email, user);
       setResult(data);
-      playSound('success');
-      if (data && data.sentiment) {
+      // Play smart real-time audio feedback based on analysis logic
+      if (data && data.priority === 'High') {
+        playSound('high-priority');
+      } else if (data && data.sentiment) {
+        playSound(data.sentiment.toLowerCase());
         setBgState(data.sentiment);
       }
       // Scroll to result slightly
@@ -139,13 +142,44 @@ export default function Home() {
                     </span>
                   </div>
 
+                  <div className="result-row">
+                    <span className="result-key">Confidence Score</span>
+                    <span className="result-val">{result.confidence}%</span>
+                  </div>
+
                   <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span className="result-key" style={{ display: 'block', marginBottom: '8px' }}>Recommended Action</span>
-                    <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.5', color: '#e2e8f0' }}>
-                      {result.priority === 'High'
-                        ? "Escalate to senior support team immediately. Draft apology response."
-                        : (result.sentiment === 'Negative' ? "Flag for follow-up review. Monitor customer satisfaction." : "Standard response protocol applies.")}
-                    </p>
+                    <span className="result-key" style={{ display: 'block', marginBottom: '12px', color: '#a78bfa', fontSize: '16px' }}>Detailed Insights & Action Plan</span>
+
+                    {result.detailed_feedback ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                          <span style={{ color: '#94a3b8', fontSize: '13px', display: 'block', marginBottom: '8px' }}>DETECTED TONES</span>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {result.detailed_feedback.tone_descriptors.map((tone, idx) => (
+                              <span key={idx} style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', color: '#e2e8f0', textTransform: 'capitalize' }}>
+                                {tone}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <span style={{ color: '#94a3b8', fontSize: '13px', display: 'block', marginBottom: '8px' }}>ACTION ITEMS</span>
+                          <ul style={{ margin: 0, paddingLeft: '20px', color: '#e2e8f0', fontSize: '15px', lineHeight: '1.6' }}>
+                            {result.detailed_feedback.action_items.map((item, idx) => (
+                              <li key={idx} style={{ marginBottom: '6px' }}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.5', color: '#e2e8f0' }}>
+                        {result.priority === 'High'
+                          ? "Escalate to senior support team immediately. Draft apology response."
+                          : (result.sentiment === 'Negative' ? "Flag for follow-up review. Monitor customer satisfaction." : "Standard response protocol applies.")
+                        }
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               )}

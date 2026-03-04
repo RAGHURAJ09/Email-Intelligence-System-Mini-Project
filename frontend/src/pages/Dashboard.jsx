@@ -11,16 +11,19 @@ export default function Dashboard() {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [generatedResponse, setGeneratedResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterPriority, setFilterPriority] = useState("All");
   const user = localStorage.getItem("user");
+
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      const fetchData = () => {
-        fetch(`http://localhost:5000/api/history/${user}`)
-          .then(res => res.json())
-          .then(data => setHistory(data.reverse()));
-      };
-      fetchData();
+      setIsLoading(true);
+      fetch(`http://localhost:5000/api/history/${user}`)
+        .then(res => res.json())
+        .then(data => setHistory(data.reverse()))
+        .finally(() => setIsLoading(false));
     }
   }, [user]);
 
@@ -61,6 +64,13 @@ export default function Dashboard() {
     acc[curr.intent] = (acc[curr.intent] || 0) + 1;
     return acc;
   }, {});
+
+  const filteredHistory = history.filter(item => {
+    const matchesSearch = item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.intent.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPriority = filterPriority === "All" || item.priority === filterPriority;
+    return matchesSearch && matchesPriority;
+  });
 
   const doughnutData = {
     labels: Object.keys(intentCounts),
@@ -145,32 +155,93 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Recent Activity Feed */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="recent-activity-card">
-          <h3 style={{ margin: '0 0 20px 0', color: '#f8fafc' }}>Recent Activity</h3>
-          <div style={{ overflowY: 'auto', height: '100%' }}>
-            {history.map((item, i) => (
-              <motion.div
-                whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.03)" }}
-                whileTap={{ scale: 0.98 }}
-                key={i}
-                className="activity-item"
-                onClick={() => setSelectedEmail(item)}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="recent-activity-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ margin: 0, color: '#f8fafc' }}>Recent Activity</h3>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input
+                type="text"
+                placeholder="Search emails..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none',
+                  minWidth: '150px'
+                }}
+              />
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none', cursor: 'pointer'
+                }}
               >
-                <div className="activity-header">
-                  <span className="activity-email">
-                    {item.email.substring(0, 100)}{item.email.length > 100 ? '...' : ''}
-                  </span>
-                  <span className={`activity-badge priority-${item.priority.toLowerCase()}`}>
-                    {item.priority}
-                  </span>
+                <option value="All" style={{ background: '#1e293b' }}>All Priorities</option>
+                <option value="High" style={{ background: '#1e293b' }}>High Priority</option>
+                <option value="Medium" style={{ background: '#1e293b' }}>Medium Priority</option>
+                <option value="Low" style={{ background: '#1e293b' }}>Low Priority</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+            {isLoading ? (
+              // Skeleton Loaders
+              [...Array(5)].map((_, idx) => (
+                <div key={idx} className="activity-item skeleton-loader" style={{ padding: '16px', marginBottom: '12px' }}>
+                  <div className="skeleton-title" style={{ background: 'rgba(255,255,255,0.1)' }}></div>
+                  <div className="skeleton-text" style={{ background: 'rgba(255,255,255,0.1)' }}></div>
+                  <div className="skeleton-text" style={{ background: 'rgba(255,255,255,0.1)', width: '80%' }}></div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
-                  <span>{item.intent}</span>
-                  <span>{item.sentiment}</span>
-                </div>
-              </motion.div>
-            ))}
-            {history.length === 0 && <p className="text-muted" style={{ textAlign: 'center', marginTop: '40px' }}>No data available</p>}
+              ))
+            ) : filteredHistory.length > 0 ? (
+              // Actual Data
+              filteredHistory.map((item, i) => (
+                <motion.div
+                  whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.05)", x: 4 }}
+                  whileTap={{ scale: 0.98 }}
+                  key={i}
+                  className="activity-item"
+                  style={{
+                    cursor: 'pointer',
+                    borderLeft: `3px solid ${item.priority === 'High' ? '#f87171' : (item.priority === 'Medium' ? '#fbbf24' : '#34d399')}`
+                  }}
+                  onClick={() => setSelectedEmail(item)}
+                >
+                  <div className="activity-header">
+                    <span className="activity-email" style={{ fontWeight: '500', lineHeight: '1.4' }}>
+                      {item.email.substring(0, 90)}{item.email.length > 90 ? '...' : ''}
+                    </span>
+                    <span className={`activity-badge priority-${item.priority.toLowerCase()}`}>
+                      {item.priority}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
+                    <span style={{ textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ opacity: 0.6 }}>Intent:</span> <strong style={{ color: '#e2e8f0' }}>{item.intent}</strong>
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '14px' }}>{item.sentiment === 'Positive' ? '😊' : (item.sentiment === 'Negative' ? '😠' : '😐')}</span>
+                      <span style={{
+                        color: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
+                        fontWeight: '500'
+                      }}>
+                        {item.sentiment}
+                      </span>
+                    </span>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              // Empty State
+              <div style={{ textAlign: 'center', margin: '40px 0', padding: '20px' }}>
+                <span style={{ fontSize: '32px', opacity: 0.5, display: 'block', marginBottom: '10px' }}>📭</span>
+                <p className="text-muted">
+                  {history.length === 0 ? "No records found." : "No emails match your filter criteria."}
+                </p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div >
@@ -223,6 +294,36 @@ export default function Dashboard() {
                     {selectedEmail.email}
                   </p>
                 </div>
+
+                {selectedEmail.detailed_feedback?.action_items && (
+                  <div style={{ marginTop: '20px', background: 'rgba(139, 92, 246, 0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                    <span className="modal-label" style={{ display: 'block', marginBottom: '12px', color: '#a78bfa' }}>Detailed Insights & Action Plan</span>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {selectedEmail.detailed_feedback.tone_descriptors && selectedEmail.detailed_feedback.tone_descriptors.length > 0 && (
+                        <div>
+                          <span style={{ color: '#94a3b8', fontSize: '12px', display: 'block', marginBottom: '6px' }}>DETECTED TONES</span>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {selectedEmail.detailed_feedback.tone_descriptors.map((tone, idx) => (
+                              <span key={idx} style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '8px', fontSize: '11px', color: '#e2e8f0', textTransform: 'capitalize' }}>
+                                {tone}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <span style={{ color: '#94a3b8', fontSize: '12px', display: 'block', marginBottom: '6px' }}>ACTION ITEMS</span>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#e2e8f0', fontSize: '14px', lineHeight: '1.6' }}>
+                          {selectedEmail.detailed_feedback.action_items.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: '4px' }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {generatedResponse && (
                   <motion.div
