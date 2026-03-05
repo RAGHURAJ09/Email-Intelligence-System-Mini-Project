@@ -4,7 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 import pickle
 import os
 from dotenv import load_dotenv
-from werkzeug.security import generate_password_hash, check_password_hash
+import csv
+import io
+from flask import Response
+from flask_bcrypt import Bcrypt
 
 load_dotenv()
 
@@ -18,6 +21,7 @@ app = Flask(
 )
 
 CORS(app)
+bcrypt = Bcrypt(app)
 
 # -------------------------
 # DATABASE CONFIG
@@ -27,12 +31,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# -------------------------
+# ------------------------
 # LOAD ML MODEL
-# -------------------------
-# -------------------------
-# LOAD ML MODELS
-# -------------------------
+# ------------------------
 with open("model.pkl", "rb") as f:
     models = pickle.load(f)
     intent_model = models["intent"]
@@ -42,11 +43,9 @@ with open("model.pkl", "rb") as f:
 with open("vectorizer.pkl", "rb") as f:
     vectorizer = pickle.load(f)
 
-# -------------------------
+# ------------------------
 # DATABASE MODELS
-# -------------------------
-# DATABASE MODELS
-# -------------------------
+# ------------------------
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -109,25 +108,33 @@ def analyze_email(text):
     probs = intent_model.predict_proba(vec)[0]
     max_prob = max(probs)
     
-    if max_prob < 0.4:
+    if max_prob < 0.55:
         # Smart Uncertainty fallback based on keyword heuristics
         text_lower = text.lower()
         if any(word in text_lower for word in ['fraud', 'scam', 'legal', 'lawyer', 'attorney', 'sue', 'police', 'report', 'unauthorized', 'stolen']):
-            return "escalation", "High", "Negative", round(max_prob * 100, 2)
+            return "Escalation", "High", "Negative", round(max_prob * 100, 2)
         elif any(word in text_lower for word in ['explode', 'burn', 'fire', 'danger', 'injury', 'broken', 'shattered', 'bleeding', 'hospital', 'hazard', 'toxic']):
-             return "issue", "High", "Negative", round(max_prob * 100, 2)
+             return "Issue", "High", "Negative", round(max_prob * 100, 2)
         elif any(word in text_lower for word in ['refund', 'charged', 'money', 'cancel', 'angry', 'stolen', 'missing']):
-             return "refund", "High", "Negative", round(max_prob * 100, 2)
+             return "Refund", "High", "Negative", round(max_prob * 100, 2)
         else:
-            return "query", "Low", "Neutral", round(max_prob * 100, 2)
+            return "Query", "Low", "Neutral", round(max_prob * 100, 2)
 
     intent = intent_model.classes_[probs.argmax()]
 
+    # Standardize ML categories to Dashboard Dropdown labels
+    if intent in ["payment_issue", "delivery_issue"]:
+        intent = "Issue"
+    elif intent == "complaint":
+        intent = "Escalation"
+    else:
+        intent = intent.capitalize()
+
     # 2. Predict Sentiment
-    sentiment = sentiment_model.predict(vec)[0]
+    sentiment = sentiment_model.predict(vec)[0].capitalize()
     
     # 3. Predict Priority
-    priority = priority_model.predict(vec)[0]
+    priority = priority_model.predict(vec)[0].capitalize()
 
     return intent, priority, sentiment, round(max_prob * 100, 2)
 
@@ -145,8 +152,8 @@ def signup():
     if existing:
         return jsonify({"error": "User already exists"}), 400
 
-    # Hash the password for security before saving to db
-    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+    # Hash the password for security using bcrypt
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
     new_user = User(username=username, password=hashed_password)
     db.session.add(new_user)
@@ -163,8 +170,8 @@ def login():
 
     user = User.query.filter_by(username=username).first()
     
-    # Check if user exists and password hash matches
-    if user and check_password_hash(user.password, password):
+    # Check if user exists and password hash matches using bcrypt
+    if user and bcrypt.check_password_hash(user.password, password):
         return jsonify({"message": "Login success"})
 
     return jsonify({"error": "Invalid credentials"}), 401
@@ -208,7 +215,7 @@ def analyze():
 
 @app.route("/api/history/<user>")
 def get_history(user):
-    records = EmailHistory.query.filter_by(user=user).all()
+    records = EmailHistory.query.filter_by(user=user).order_by(EmailHistory.id.desc()).all()
 
     result = []
     for r in records:
@@ -222,13 +229,47 @@ def get_history(user):
 
     return jsonify(result)
 
+# -------------------------
+# CSV EXPORT ROUTE
+# -------------------------
+@app.route("/api/export/<user>")
+def export_csv(user):
+    records = EmailHistory.query.filter_by(user=user).all()
+
+    # Generate CSV data
+    def generate():
+        data = io.StringIO()
+        writer = csv.writer(data)
+        
+        # Write header
+        writer.writerow(('Email Content', 'Intent', 'Sentiment', 'Priority'))
+        yield data.getvalue()
+        data.seek(0)
+        data.truncate(0)
+
+        # Write rows
+        for r in records:
+            writer.writerow((r.email, r.intent, r.sentiment, r.priority))
+            yield data.getvalue()
+            data.seek(0)
+            data.truncate(0)
+
+    # Return as streaming response
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename="email_history.csv")
+    return response
+
 
 # -------------------------
 # SERVE REACT BUILD
 # -------------------------
-@app.route("/")
-def serve():
-    return send_from_directory(app.static_folder, "index.html")
+@app.route("/", defaults={'path': ''})
+@app.route("/<path:path>")
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, "index.html")
 
 
 # -------------------------

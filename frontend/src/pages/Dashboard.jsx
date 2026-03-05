@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
+import API from '../api';
 
 // Register ChartJS
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPriority, setFilterPriority] = useState("All");
+  const [filterIntent, setFilterIntent] = useState("All");
   const user = localStorage.getItem("user");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -20,9 +22,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       setIsLoading(true);
-      fetch(`http://localhost:5000/api/history/${user}`)
-        .then(res => res.json())
-        .then(data => setHistory(data.reverse()))
+      fetch(`${API}/history/${encodeURIComponent(user)}`)
+        .then(res => new Promise(resolve => setTimeout(() => resolve(res.json()), 1000)))
+        .then(data => setHistory(data))
         .finally(() => setIsLoading(false));
     }
   }, [user]);
@@ -33,7 +35,7 @@ export default function Dashboard() {
     setGeneratedResponse("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/generate-response", {
+      const res = await fetch(`${API}/generate-response`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -69,7 +71,8 @@ export default function Dashboard() {
     const matchesSearch = item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.intent.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = filterPriority === "All" || item.priority === filterPriority;
-    return matchesSearch && matchesPriority;
+    const matchesIntent = filterIntent === "All" || item.intent.toLowerCase() === filterIntent.toLowerCase();
+    return matchesSearch && matchesPriority && matchesIntent;
   });
 
   const doughnutData = {
@@ -158,7 +161,7 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="recent-activity-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ margin: 0, color: '#f8fafc' }}>Recent Activity</h3>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 placeholder="Search emails..."
@@ -183,6 +186,29 @@ export default function Dashboard() {
                 <option value="Medium" style={{ background: '#1e293b' }}>Medium Priority</option>
                 <option value="Low" style={{ background: '#1e293b' }}>Low Priority</option>
               </select>
+              <select
+                value={filterIntent}
+                onChange={(e) => setFilterIntent(e.target.value)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none', cursor: 'pointer'
+                }}
+              >
+                <option value="All" style={{ background: '#1e293b' }}>All Intents</option>
+                <option value="refund" style={{ background: '#1e293b' }}>Refund</option>
+                <option value="query" style={{ background: '#1e293b' }}>Query</option>
+                <option value="issue" style={{ background: '#1e293b' }}>Issue</option>
+                <option value="feedback" style={{ background: '#1e293b' }}>Feedback</option>
+                <option value="escalation" style={{ background: '#1e293b' }}>Escalation</option>
+              </select>
+              <a
+                href={`${API}/export/${encodeURIComponent(user)}`}
+                download
+                className="btn-secondary"
+                style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>📥</span> Export CSV
+              </a>
             </div>
           </div>
           <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>

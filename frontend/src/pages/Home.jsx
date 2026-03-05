@@ -11,6 +11,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState("");
 
   const user = localStorage.getItem("user");
   const resultRef = useRef(null);
@@ -42,6 +43,10 @@ export default function Home() {
         playSound(data.sentiment.toLowerCase());
         setBgState(data.sentiment);
       }
+      // Show custom notification
+      setNotification("✅ Analysis Complete!");
+      setTimeout(() => setNotification(""), 1500);
+
       // Scroll to result slightly
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -49,6 +54,8 @@ export default function Home() {
     } catch (error) {
       console.error("Analysis failed:", error);
       playSound('error');
+      setNotification("❌ Analysis Failed. Please try again.");
+      setTimeout(() => setNotification(""), 2000); // Give errors slightly longer to be read
     } finally {
       setLoading(false);
     }
@@ -187,6 +194,42 @@ export default function Home() {
           </div>
         </motion.div>
       )}
+
+      {/* Custom Centered Main Notification Overlay */}
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+        <AnimatePresence>
+          {notification && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -30 }}
+              style={{
+                pointerEvents: 'auto',
+                padding: '16px 32px', // Slightly smaller
+                background: notification.includes('❌') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                backdropFilter: 'blur(40px) saturate(150%)', // Glossy heavy frosted glass
+                WebkitBackdropFilter: 'blur(40px) saturate(150%)',
+                border: notification.includes('❌') ? '1px solid rgba(239, 68, 68, 0.6)' : '1px solid rgba(16, 185, 129, 0.6)',
+                borderTop: notification.includes('❌') ? '1px solid rgba(255, 150, 150, 0.6)' : '1px solid rgba(150, 255, 180, 0.6)', // Bright top edge for gloss
+                color: '#f8fafc',
+                borderRadius: '16px', // Tighter rounding
+                boxShadow: '0 25px 50px rgba(0,0,0,0.7), inset 0 2px 20px rgba(255,255,255,0.08)', // Internal glossy rim
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                fontSize: '16px', // Smaller text
+                letterSpacing: '0.5px',
+                minWidth: '280px' // Smaller min width
+              }}
+            >
+              <span style={{ fontSize: '22px' }}>{notification.includes('❌') ? '❌' : '✨'}</span>
+              <span>{notification.replace('✅ ', '').replace('❌ ', '')}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
