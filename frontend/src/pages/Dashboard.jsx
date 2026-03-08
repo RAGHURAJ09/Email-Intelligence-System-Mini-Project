@@ -94,11 +94,11 @@ export default function Dashboard() {
   };
 
   const lineData = {
-    labels: history.slice(0, 25).reverse().map((_, i) => i + 1), // Last 25 emails
+    labels: history.slice(0, 39).reverse().map((_, i) => i + 1), // Last 39 emails
     datasets: [
       {
-        label: 'Sentiment Score (Last 25)',
-        data: history.slice(0, 25).reverse().map(h => h.sentiment === "Positive" ? 100 : (h.sentiment === "Negative" ? 20 : 60)),
+        label: 'Sentiment Score (Last 39)',
+        data: history.slice(0, 39).reverse().map(h => h.sentiment === "Positive" ? 100 : (h.sentiment === "Negative" ? 20 : 60)),
         borderColor: '#a855f7',
         backgroundColor: 'rgba(168, 85, 247, 0.2)',
         tension: 0.4,
@@ -146,22 +146,36 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="stat-card">
           <span className="stat-label">System Status</span>
           <span className="stat-value" style={{ fontSize: '20px', color: '#10b981' }}>Operational</span>
-          <span className="stat-trend">All systems normal</span>
+          <span className="stat-trend" style={{ marginBottom: '16px' }}>All systems normal</span>
         </motion.div>
+
+
 
         {/* Main Chart Area */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="main-chart-card">
-          <h3 style={{ margin: '0 0 20px 0', color: '#f8fafc' }}>Sentiment Trends</h3>
+          <div style={{ position: 'relative', marginBottom: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '36px' }}>
+            <h3 style={{ margin: 0, color: '#f8fafc', position: 'absolute', left: 0 }}>Sentiment Trends</h3>
+            <motion.div
+              initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, repeat: Infinity, repeatType: "reverse", duration: 1.5 }}
+            >
+              <a
+                href="#recent-activity"
+                style={{ color: '#a855f7', fontSize: '14px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', background: 'rgba(168, 85, 247, 0.15)', padding: '8px 24px', borderRadius: '30px', border: '1px solid rgba(168, 85, 247, 0.2)' }}
+              >
+                Scroll down to Recent Activity <span style={{ fontSize: '16px' }}>↓</span>
+              </a>
+            </motion.div>
+          </div>
           <div style={{ height: '300px' }}>
             <Line data={lineData} options={chartOptions} />
           </div>
         </motion.div>
 
         {/* Recent Activity Feed */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="recent-activity-card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-            <h3 style={{ margin: 0, color: '#f8fafc' }}>Recent Activity</h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <motion.div id="recent-activity" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="recent-activity-card" style={{ display: 'flex', flexDirection: 'column', scrollMarginTop: '80px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'nowrap', gap: '16px' }}>
+            <h3 style={{ margin: 0, color: '#f8fafc', whiteSpace: 'nowrap' }}>Recent Activity</h3>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'nowrap', flex: 1, justifyContent: 'flex-end', overflowX: 'auto', paddingBottom: '4px' }}>
               <input
                 type="text"
                 placeholder="Search emails..."
@@ -211,7 +225,7 @@ export default function Dashboard() {
               </a>
             </div>
           </div>
-          <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+          <div style={{ overflow: 'auto', flex: 1, paddingRight: '4px' }}>
             {isLoading ? (
               // Skeleton Loaders
               [...Array(5)].map((_, idx) => (
@@ -223,42 +237,112 @@ export default function Dashboard() {
               ))
             ) : filteredHistory.length > 0 ? (
               // Actual Data
-              filteredHistory.map((item, i) => (
-                <motion.div
-                  whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.05)", x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  key={i}
-                  className="activity-item"
-                  style={{
-                    cursor: 'pointer',
-                    borderLeft: `3px solid ${item.priority === 'High' ? '#f87171' : (item.priority === 'Medium' ? '#fbbf24' : '#34d399')}`
-                  }}
-                  onClick={() => setSelectedEmail(item)}
-                >
-                  <div className="activity-header">
-                    <span className="activity-email" style={{ fontWeight: '500', lineHeight: '1.4' }}>
-                      {item.email.substring(0, 90)}{item.email.length > 90 ? '...' : ''}
+              <div style={{ minWidth: '700px', paddingBottom: '8px', overflowX: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 100px 100px 120px', gap: '16px', padding: '0 16px 12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', paddingRight: '48px' }}>
+                    <span style={{ transform: 'translateX(-90px)' }}>Emails</span>
+                  </div>
+                  <span style={{ transform: 'translateX(20px)' }}>Intent</span>
+                  <span style={{ justifySelf: 'center' }}>Priority</span>
+                  <span style={{ justifySelf: 'center' }}>Sentiment</span>
+                </div>
+                {filteredHistory.map((item, i) => (
+                  <motion.div
+                    whileHover={{ backgroundColor: "rgba(255,255,255,0.25)" }}
+                    key={i}
+                    className="activity-item"
+                    style={{
+                      cursor: 'pointer',
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(300px, 1fr) 100px 100px 120px',
+                      gap: '16px',
+                      padding: '16px',
+                      alignItems: 'flex-start',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      backgroundColor: i % 2 === 0 ? 'rgba(255,255,255,0.15)' : 'transparent',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                    onClick={() => setSelectedEmail(item)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'stretch', gap: '12px', paddingRight: '48px' }}>
+                      <div style={{
+                        width: '3px',
+                        height: 'auto',
+                        borderRadius: '2px',
+                        backgroundColor: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
+                        marginTop: '0px',
+                        flexShrink: 0
+                      }} />
+                      <span style={{ fontSize: '16px', flexShrink: 0, width: '16px', textAlign: 'center', marginTop: '2px' }}>
+                        {item.sentiment === 'Positive' ? '😊' : (item.sentiment === 'Negative' ? '😠' : '😐')}
+                      </span>
+                      <span style={{ maxWidth: '560px', fontWeight: '500', fontSize: '14px', color: '#f8fafc', lineHeight: '1.5', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {item.email}
+                      </span>
+                    </div>
+
+                    <span style={{
+                      color: '#e2e8f0',
+                      textTransform: 'capitalize',
+                      fontSize: '12px',
+                      justifySelf: 'center',
+                      padding: '6px 12px',
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      textAlign: 'center',
+                      display: 'inline-block',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {item.intent.replace('_', ' ')}
                     </span>
-                    <span className={`activity-badge priority-${item.priority.toLowerCase()}`}>
+
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      justifySelf: 'center',
+                      gap: '8px',
+                      fontSize: '12px',
+                      color: '#f8fafc',
+                      padding: '6px 12px',
+                      borderRadius: '16px',
+                      backgroundColor: item.priority === 'High' ? 'rgba(248, 113, 113, 0.1)' : (item.priority === 'Medium' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(52, 211, 153, 0.1)'),
+                      border: `1px solid ${item.priority === 'High' ? 'rgba(248, 113, 113, 0.25)' : (item.priority === 'Medium' ? 'rgba(251, 191, 36, 0.25)' : 'rgba(52, 211, 153, 0.25)')}`,
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      <span style={{
+                        display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%',
+                        backgroundColor: item.priority === 'High' ? '#f87171' : (item.priority === 'Medium' ? '#fbbf24' : '#34d399'),
+                        boxShadow: `0 0 8px ${item.priority === 'High' ? 'rgba(248,113,113,0.6)' : (item.priority === 'Medium' ? 'rgba(251,191,36,0.6)' : 'rgba(52,211,153,0.6)')}`
+                      }}></span>
                       {item.priority}
                     </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
-                    <span style={{ textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ opacity: 0.6 }}>Intent:</span> <strong style={{ color: '#e2e8f0' }}>{item.intent}</strong>
+
+                    <span style={{
+                      fontSize: '12px',
+                      color: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
+                      fontWeight: '600',
+                      justifySelf: 'center',
+                      padding: '6px 12px',
+                      borderRadius: '16px',
+                      backgroundColor: item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.1)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(251, 191, 36, 0.1)'),
+                      border: `1px solid ${item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.25)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.25)' : 'rgba(251, 191, 36, 0.25)')}`,
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      textAlign: 'center',
+                      display: 'inline-block',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {item.sentiment}
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '14px' }}>{item.sentiment === 'Positive' ? '😊' : (item.sentiment === 'Negative' ? '😠' : '😐')}</span>
-                      <span style={{
-                        color: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
-                        fontWeight: '500'
-                      }}>
-                        {item.sentiment}
-                      </span>
-                    </span>
-                  </div>
-                </motion.div>
-              ))
+                  </motion.div>
+                ))}
+              </div>
             ) : (
               // Empty State
               <div style={{ textAlign: 'center', margin: '40px 0', padding: '20px' }}>

@@ -322,8 +322,8 @@ input[type="password"]::-ms-clear:hover {
 }
 
 .main-chart-card {
-  grid-column: span 3;
-  grid-row: span 2;
+  grid-column: span 4;
+  grid-row: auto;
   background: var(--bg-card);
   border: var(--border-light);
   border-radius: 16px;
@@ -332,8 +332,8 @@ input[type="password"]::-ms-clear:hover {
 }
 
 .recent-activity-card {
-  grid-column: span 1;
-  grid-row: span 2;
+  grid-column: span 4;
+  grid-row: auto;
   background: var(--bg-card);
   border: var(--border-light);
   border-radius: 16px;
@@ -341,7 +341,7 @@ input[type="password"]::-ms-clear:hover {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: 500px;
+  max-height: 600px;
 }
 
 /* Stat Typography */
