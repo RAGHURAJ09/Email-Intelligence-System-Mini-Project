@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard";
 import About from "./pages/About";
 import Admin from "./pages/Admin";
 import Documentation from "./pages/Documentation";
+import ForgotPassword from "./pages/ForgotPassword";
+import UpdatePassword from "./pages/UpdatePassword";
 import Hero from "./components/Hero";
 import NeuralBackground from "./components/NeuralBackground";
 import { BackgroundProvider } from "./context/BackgroundContext";
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/about" element={<About />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/documentation" element={<Documentation />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
           </Routes>
         </div>
       </BrowserRouter>

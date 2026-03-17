@@ -2,12 +2,26 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../utils/supabase";
 import { playSound } from "../utils/soundEffects";
+import Captcha from "../components/Captcha";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaValid, setCaptchaValid] = useState(false);
 
   const login = async () => {
+    if (!username.trim() || !password) {
+      playSound('error');
+      alert("Please enter both username and password.");
+      return;
+    }
+
+    if (!captchaValid) {
+      playSound('error');
+      alert("Please complete the security captcha correctly before signing in.");
+      return;
+    }
+
     try {
       const res = await fetch("http://127.0.0.1:5000/api/login", {
         method: "POST",
@@ -66,6 +80,8 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
+          <Captcha onVerify={setCaptchaValid} />
+
           <button className="btn-primary" onClick={login} style={{ width: '100%', marginTop: '8px' }}>
             Sign In
           </button>
@@ -99,12 +115,20 @@ export default function Login() {
           Sign in with Google
         </button>
 
-        <p style={{ marginTop: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
-          Don't have an account?
-          <a href="/signup" style={{ color: '#6366f1', marginLeft: '4px', textDecoration: 'none', fontWeight: 600 }}>
-            Create Account
-          </a>
-        </p>
+        <div style={{ marginTop: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
+            Forgot your password?
+            <a href="/forgot-password" style={{ color: '#6366f1', marginLeft: '4px', textDecoration: 'none', fontWeight: 600 }}>
+              Reset it
+            </a>
+          </p>
+          <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
+            Don't have an account?
+            <a href="/signup" style={{ color: '#6366f1', marginLeft: '4px', textDecoration: 'none', fontWeight: 600 }}>
+              Create Account
+            </a>
+          </p>
+        </div>
       </motion.div>
     </div>
   );

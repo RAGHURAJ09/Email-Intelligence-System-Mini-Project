@@ -26,7 +26,19 @@ export default function Home() {
   };
 
   const submit = async () => {
-    if (!email) return;
+    if (!email.trim()) {
+      playSound('error');
+      setNotification("❌ Please paste some text to analyze.");
+      setTimeout(() => setNotification(""), 2000);
+      return;
+    }
+
+    if (email.trim().length < 10) {
+      playSound('error');
+      setNotification("❌ Text is too short for accurate AI analysis.");
+      setTimeout(() => setNotification(""), 2500);
+      return;
+    }
     setLoading(true);
     setResult(null);
 

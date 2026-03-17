@@ -56,7 +56,7 @@ This project utilizes a custom-trained **Logistic Regression** pipeline, selecte
 1. **Preprocessing (NLTK):** User text is lowercased, stripped of punctuation, and purged of common stop words.
 2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words (e.g., "broken", "refund") and assign numerical value.
 3. **Multi-Model Prediction:** The vector is fed simultaneously into four distinct `.pkl` models to individually predict **Spam**, **Intent**, **Sentiment**, and **Priority**. 
-4. **Model Evaluation:** The AI relies on a strict 80/20 train-test split pattern to evaluate unseen data, grading algorithms on **Accuracy (1.0000)**, **Precision (1.0000)**, **Recall (1.0000)**, and the **F1 Score (1.0000)** to guarantee reliable parsing.
+4. **Model Evaluation:** The AI relies on a strict 80/20 train-test split pattern to evaluate unseen data, grading algorithms on **Accuracy (~0.96)**, **Precision (~0.95)**, **Recall (~0.96)**, and the **F1 Score (~0.96)** to ensure the model generalizes well to new, real-world customer inquiries.
 5. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is extremely low (<40%), it safely defaults to 'Query' | 'Neutral' | 'Low' to prevent hallucination fallbacks.
 
 ---

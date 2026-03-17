@@ -2,12 +2,33 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../utils/supabase";
 import { playSound } from "../utils/soundEffects";
+import Captcha from "../components/Captcha";
 
 export default function Signup() {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaValid, setCaptchaValid] = useState(false);
 
   const signup = async () => {
+    if (!username.trim() || !password) {
+      playSound('error');
+      alert("Please enter both a username and password.");
+      return;
+    }
+
+    if (username.trim().length < 3) {
+      playSound('error');
+      alert("Username must be at least 3 characters long.");
+      return;
+    }
+
+    if (!captchaValid) {
+      playSound('error');
+      alert("Please complete the security captcha correctly before creating an account.");
+      return;
+    }
+
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
       playSound('error');
@@ -16,10 +37,23 @@ export default function Signup() {
     }
 
     try {
+      // 1. Sign up with Supabase for Email Verification & Recovery
+      const { data: supaData, error: supaError } = await supabase.auth.signUp({
+        email: email,
+        password: password
+      });
+
+      if (supaError) {
+        playSound('error');
+        alert("Verification signup failed: " + supaError.message);
+        return;
+      }
+
+      // 2. Register manually in Flask backend for local history link
       const res = await fetch("http://127.0.0.1:5000/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, email }),
       });
       const data = await res.json();
 
@@ -29,7 +63,8 @@ export default function Signup() {
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token);
         }
-        window.location.href = "/";
+        alert("Account created! Please check your email for a verification link.");
+        window.location.href = "/login";
       } else {
         playSound('error');
         alert("Signup failed: " + (data.error || "Unknown error"));
@@ -70,11 +105,20 @@ export default function Signup() {
           />
 
           <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
+          <Captcha onVerify={setCaptchaValid} />
 
           <button className="btn-primary" onClick={signup} style={{ width: '100%', marginTop: '8px' }}>
             Create Account

@@ -57,7 +57,9 @@ with open("vectorizer.pkl", "rb") as f:
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
     password = db.Column(db.String(255), nullable=False)
+    is_verified = db.Column(db.Boolean, default=False)
 
 
 class EmailHistory(db.Model):
@@ -162,9 +164,10 @@ def signup():
         data = request.json
         username = data.get("username")
         password = data.get("password")
+        email = data.get("email")
 
-        if not username or not password:
-            return jsonify({"error": "Missing username or password"}), 400
+        if not username or not password or not email:
+            return jsonify({"error": "Missing required fields"}), 400
 
         existing = User.query.filter_by(username=username).first()
         if existing:
@@ -173,7 +176,7 @@ def signup():
         # Hash the password for security using bcrypt
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        new_user = User(username=username, password=hashed_password)
+        new_user = User(username=username, password=hashed_password, email=email)
         db.session.add(new_user)
         db.session.commit()
 
