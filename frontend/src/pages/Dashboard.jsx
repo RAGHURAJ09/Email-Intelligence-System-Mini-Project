@@ -238,7 +238,7 @@ export default function Dashboard() {
             ) : filteredHistory.length > 0 ? (
               // Actual Data
               <div style={{ minWidth: '700px', paddingBottom: '8px', overflowX: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 100px 100px 120px', gap: '16px', padding: '0 16px 12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 100px 100px 160px', gap: '16px', padding: '0 16px 12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', paddingRight: '48px' }}>
                     <span style={{ transform: 'translateX(-90px)' }}>Emails</span>
                   </div>
@@ -254,7 +254,7 @@ export default function Dashboard() {
                     style={{
                       cursor: 'pointer',
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(300px, 1fr) 100px 100px 120px',
+                      gridTemplateColumns: 'minmax(300px, 1fr) 100px 100px 160px',
                       gap: '16px',
                       padding: '16px',
                       alignItems: 'flex-start',
@@ -323,23 +323,41 @@ export default function Dashboard() {
                       {item.priority}
                     </span>
 
-                    <span style={{
-                      fontSize: '12px',
-                      color: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
-                      fontWeight: '600',
-                      justifySelf: 'center',
-                      padding: '6px 12px',
-                      borderRadius: '16px',
-                      backgroundColor: item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.1)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(251, 191, 36, 0.1)'),
-                      border: `1px solid ${item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.25)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.25)' : 'rgba(251, 191, 36, 0.25)')}`,
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      textAlign: 'center',
-                      display: 'inline-block',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {item.sentiment}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', justifySelf: 'center' }}>
+                      <span style={{
+                        fontSize: '12px',
+                        color: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
+                        fontWeight: '600',
+                        padding: '6px 12px',
+                        borderRadius: '16px',
+                        backgroundColor: item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.1)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(251, 191, 36, 0.1)'),
+                        border: `1px solid ${item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.25)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.25)' : 'rgba(251, 191, 36, 0.25)')}`,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        textAlign: 'center',
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {item.sentiment}
+                      </span>
+                      {item.is_spam && (
+                        <span style={{
+                          fontSize: '11px',
+                          color: '#ef4444',
+                          fontWeight: '600',
+                          padding: '4px 8px',
+                          borderRadius: '16px',
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          🚨 Spam
+                        </span>
+                      )}
+                    </div>
                   </motion.div>
                 ))}
               </div>

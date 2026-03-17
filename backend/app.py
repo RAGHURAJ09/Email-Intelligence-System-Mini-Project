@@ -8,6 +8,7 @@ import csv
 import io
 from flask import Response
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 load_dotenv()
 
@@ -22,6 +23,12 @@ app = Flask(
 
 CORS(app)
 bcrypt = Bcrypt(app)
+
+# -------------------------
+# JWT CONFIGURATION
+# -------------------------
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "customer-ai-super-secret-fallback")
+jwt = JWTManager(app)
 
 # -------------------------
 # DATABASE CONFIG
@@ -39,6 +46,7 @@ with open("model.pkl", "rb") as f:
     intent_model = models["intent"]
     sentiment_model = models["sentiment"]
     priority_model = models["priority"]
+    spam_model = models.get("spam")
 
 with open("vectorizer.pkl", "rb") as f:
     vectorizer = pickle.load(f)
@@ -104,6 +112,11 @@ def get_detailed_feedback(intent, priority, sentiment):
 def analyze_email(text):
     vec = vectorizer.transform([text])
     
+    # 0. Predict Spam
+    is_spam_pred = False
+    if spam_model:
+        is_spam_pred = bool(spam_model.predict(vec)[0])
+        
     # 1. Predict Intent with Confidence Check
     probs = intent_model.predict_proba(vec)[0]
     max_prob = max(probs)
@@ -112,13 +125,13 @@ def analyze_email(text):
         # Smart Uncertainty fallback based on keyword heuristics
         text_lower = text.lower()
         if any(word in text_lower for word in ['fraud', 'scam', 'legal', 'lawyer', 'attorney', 'sue', 'police', 'report', 'unauthorized', 'stolen']):
-            return "Escalation", "High", "Negative", round(max_prob * 100, 2)
+            return "Escalation", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
         elif any(word in text_lower for word in ['explode', 'burn', 'fire', 'danger', 'injury', 'broken', 'shattered', 'bleeding', 'hospital', 'hazard', 'toxic']):
-             return "Issue", "High", "Negative", round(max_prob * 100, 2)
+             return "Issue", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
         elif any(word in text_lower for word in ['refund', 'charged', 'money', 'cancel', 'angry', 'stolen', 'missing']):
-             return "Refund", "High", "Negative", round(max_prob * 100, 2)
+             return "Refund", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
         else:
-            return "Query", "Low", "Neutral", round(max_prob * 100, 2)
+            return "Query", "Low", "Neutral", round(max_prob * 100, 2), is_spam_pred
 
     intent = intent_model.classes_[probs.argmax()]
 
@@ -136,7 +149,7 @@ def analyze_email(text):
     # 3. Predict Priority
     priority = priority_model.predict(vec)[0].capitalize()
 
-    return intent, priority, sentiment, round(max_prob * 100, 2)
+    return intent, priority, sentiment, round(max_prob * 100, 2), is_spam_pred
 
 
 # -------------------------
@@ -144,37 +157,55 @@ def analyze_email(text):
 # -------------------------
 @app.route("/api/signup", methods=["POST"])
 def signup():
-    data = request.json
-    username = data.get("username")
-    password = data.get("password")
+    """Register a new user with hashed password."""
+    try:
+        data = request.json
+        username = data.get("username")
+        password = data.get("password")
 
-    existing = User.query.filter_by(username=username).first()
-    if existing:
-        return jsonify({"error": "User already exists"}), 400
+        if not username or not password:
+            return jsonify({"error": "Missing username or password"}), 400
 
-    # Hash the password for security using bcrypt
-    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        existing = User.query.filter_by(username=username).first()
+        if existing:
+            return jsonify({"error": "User already exists"}), 400
 
-    new_user = User(username=username, password=hashed_password)
-    db.session.add(new_user)
-    db.session.commit()
+        # Hash the password for security using bcrypt
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
-    return jsonify({"message": "Signup successful"})
+        new_user = User(username=username, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Automatically log in the user after signup by issuing a token
+        access_token = create_access_token(identity=username)
+        return jsonify({"message": "Signup successful", "access_token": access_token}), 201
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
 
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.json
-    username = data.get("username")
-    password = data.get("password")
+    """Authenticate existing user and issue JWT."""
+    try:
+        data = request.json
+        username = data.get("username")
+        password = data.get("password")
 
-    user = User.query.filter_by(username=username).first()
-    
-    # Check if user exists and password hash matches using bcrypt
-    if user and bcrypt.check_password_hash(user.password, password):
-        return jsonify({"message": "Login success"})
+        if not username or not password:
+            return jsonify({"error": "Missing username or password"}), 400
 
-    return jsonify({"error": "Invalid credentials"}), 401
+        user = User.query.filter_by(username=username).first()
+        
+        # Check if user exists and password hash matches using bcrypt
+        if user and bcrypt.check_password_hash(user.password, password):
+            access_token = create_access_token(identity=username)
+            return jsonify({"message": "Login success", "access_token": access_token}), 200
+
+        return jsonify({"error": "Invalid credentials"}), 401
+    except Exception as e:
+        return jsonify({"error": f"Login failed: {str(e)}"}), 500
 
 
 # -------------------------
@@ -182,52 +213,90 @@ def login():
 # -------------------------
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
-    data = request.json
-    email = data.get("email")
-    user = data.get("user")  # null for guest
+    """Analyze email content for intent, priority, sentiment, and spam status."""
+    try:
+        data = request.json
+        if not data or not data.get("email"):
+             return jsonify({"error": "Email content is required"}), 400
+             
+        email = data.get("email")
+        # Handle user from JWT or guest gracefully if security dictates
+        # Normally would use jwt_optional but we keep it backward compatible: 
+        # Check if they provide user string (or extract from token if we strictly enforce it)
+        user = data.get("user")  
 
-    intent, priority, sentiment, confidence = analyze_email(email)
+        intent, priority, sentiment, confidence, is_spam = analyze_email(email)
 
-    detailed_feedback = get_detailed_feedback(intent, priority, sentiment)
+        detailed_feedback = get_detailed_feedback(intent, priority, sentiment)
+        
+        if is_spam:
+            detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
+            intent = "Spam" # Set intent to Spam for clarity
 
-    result = {
-        "email": email,
-        "intent": intent,
-        "priority": priority,
-        "sentiment": sentiment,
-        "confidence": confidence,
-        "detailed_feedback": detailed_feedback
-    }
+        result = {
+            "email": email,
+            "intent": intent,
+            "priority": priority,
+            "sentiment": sentiment,
+            "confidence": confidence,
+            "is_spam": is_spam,
+            "detailed_feedback": detailed_feedback
+        }
 
-    if user:
-        record = EmailHistory(
-            user=user,
-            email=email,
-            intent=intent,
-            priority=priority,
-            sentiment=sentiment
-        )
-        db.session.add(record)
-        db.session.commit()
+        if user:
+            record = EmailHistory(
+                user=user,
+                email=email,
+                intent=intent,
+                priority=priority,
+                sentiment=sentiment
+            )
+            db.session.add(record)
+            db.session.commit()
 
-    return jsonify(result)
+        return jsonify(result), 200
+
+    except Exception as e:
+        # Improved error handling to avoid opaque 500s
+        print(f"Error during email analysis: {e}")
+        return jsonify({"error": "Failed to analyze email due to an internal error.", "details": str(e)}), 500
 
 
-@app.route("/api/history/<user>")
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
+
+@app.route("/api/history/<user>", methods=["GET"])
+@jwt_required(optional=True)
 def get_history(user):
-    records = EmailHistory.query.filter_by(user=user).order_by(EmailHistory.id.desc()).all()
+    """Retrieve history for a specific user. Secures local user data via JWT."""
+    try:
+        current_identity = get_jwt_identity()
+        
+        # Enforce that users can only see their own history if they used local auth
+        if current_identity and current_identity != user:
+             return jsonify({"error": "Unauthorized access to user history"}), 403
+             
+        records = EmailHistory.query.filter_by(user=user).order_by(EmailHistory.id.desc()).all()
 
-    result = []
-    for r in records:
-        result.append({
-            "email": r.email,
-            "intent": r.intent,
-            "priority": r.priority,
-            "sentiment": r.sentiment,
-            "detailed_feedback": get_detailed_feedback(r.intent, r.priority, r.sentiment)
-        })
+        result = []
+        for r in records:
+            is_spam = r.intent == "Spam"
+            detailed_feedback = get_detailed_feedback(r.intent, r.priority, r.sentiment)
+            
+            if is_spam:
+                detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
+                
+            result.append({
+                "email": r.email,
+                "intent": r.intent,
+                "priority": r.priority,
+                "sentiment": r.sentiment,
+                "is_spam": is_spam,
+                "detailed_feedback": detailed_feedback
+            })
 
-    return jsonify(result)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve history: {str(e)}"}), 500
 
 # -------------------------
 # CSV EXPORT ROUTE

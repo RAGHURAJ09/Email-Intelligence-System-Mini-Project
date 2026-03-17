@@ -23,13 +23,16 @@ export default function Signup() {
       });
       const data = await res.json();
 
-      if (data.message) {
+      if (data.message && !data.error) {
         playSound('success');
-        alert("Signup successful. Please login.");
-        window.location.href = "/login";
+        localStorage.setItem("user", username);
+        if (data.access_token) {
+          localStorage.setItem("access_token", data.access_token);
+        }
+        window.location.href = "/";
       } else {
         playSound('error');
-        alert(data.error || "Signup failed");
+        alert("Signup failed: " + (data.error || "Unknown error"));
       }
     } catch (err) {
       console.error(err);

@@ -16,13 +16,16 @@ export default function Login() {
       });
       const data = await res.json();
 
-      if (data.message) {
+      if (data.message && !data.error) {
         playSound('success');
         localStorage.setItem("user", username);
+        if (data.access_token) {
+          localStorage.setItem("access_token", data.access_token);
+        }
         window.location.href = "/";
       } else {
         playSound('error');
-        alert("Invalid login");
+        alert("Invalid login: " + (data.error || "Unknown error"));
       }
     } catch (err) {
       console.error(err);

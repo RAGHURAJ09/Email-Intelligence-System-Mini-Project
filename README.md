@@ -19,8 +19,9 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 * **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Technical Support, Query) reducing manual sorting time.
 * **😡 Sentiment Analysis:** Detects the emotional tone of the email (Positive, Negative, Neutral) to gauge customer satisfaction instantly.
-* **🚨 Priority Flagging:** Automatically tags emails as High, Medium, or Low urgency based on a combination of intent and sentiment.
-* **🔒 Secure Authentication:** Features a robust JWT-less local authentication system with `pbkdf2:sha256` password hashing, alongside **Google OAuth** powered by Supabase.
+* **🚨 Priority & Spam Flagging:** Automatically tags emails as High, Medium, or Low urgency. Includes an independent AI layer to aggressively filter out promotional spam or phishing.
+* **🔒 Secure Authentication:** Features a robust JWT (JSON Web Token) based local authentication system with `bcrypt` password hashing, alongside **Google OAuth** powered by Supabase.
+* **🛡️ Bulletproof Error Handling:** The API incorporates comprehensive exception handling and detailed failure states across endpoints to guide and ensure user robustness.
 * **📊 Historical Auditing:** Fully integrated PostgreSQL database saves past analysis queries chronologically for logged-in users.
 * **🎨 Modern UI/UX:** A highly responsive, neo-futuristic user interface built with React, featuring frosted glass aesthetics and fluid Framer Motion animations.
 
@@ -41,9 +42,9 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 * **Serialization:** Pickle
 
 **Database & Security:**
-* **RDBMS:** PostgreSQL
+* **RDBMS:** PostgreSQL (Hosted on Supabase)
 * **ORM:** Flask-SQLAlchemy
-* **Security:** Werkzeug Security (Password Hashing)
+* **Security & Auth:** Flask-JWT-Extended (Tokens), Flask-Bcrypt (Hashing)
 * **3rd Party Auth:** Supabase (Google Sign-In)
 
 ---
@@ -54,8 +55,9 @@ This project utilizes a custom-trained **Logistic Regression** pipeline, selecte
 
 1. **Preprocessing (NLTK):** User text is lowercased, stripped of punctuation, and purged of common stop words.
 2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words (e.g., "broken", "refund") and assign numerical value.
-3. **Multi-Model Prediction:** The vector is fed simultaneously into three distinct `.pkl` models to individually predict Intent, Sentiment, and Priority. 
-4. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is extremely low (<40%), it safely defaults to 'Query' | 'Neutral' | 'Low' to prevent hallucination fallbacks.
+3. **Multi-Model Prediction:** The vector is fed simultaneously into four distinct `.pkl` models to individually predict **Spam**, **Intent**, **Sentiment**, and **Priority**. 
+4. **Model Evaluation:** The AI relies on a strict 80/20 train-test split pattern to evaluate unseen data, grading algorithms on **Accuracy (1.0000)**, **Precision (1.0000)**, **Recall (1.0000)**, and the **F1 Score (1.0000)** to guarantee reliable parsing.
+5. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is extremely low (<40%), it safely defaults to 'Query' | 'Neutral' | 'Low' to prevent hallucination fallbacks.
 
 ---
 
@@ -95,11 +97,13 @@ cd Email-Intelligence-System-Mini-Project
 ```
 
 ### 2. Configure Database & Environment
-1. Create a local **PostgreSQL** database. 
-2. Create a `.env` file in the `/backend` folder.
-3. Add your database connection string to `.env`:
+1. Create a new project on **Supabase** (or any cloud PostgreSQL provider).
+2. Go to Project Settings -> Database -> Connection String (URI).
+3. Create a `.env` file in the `/backend` folder.
+4. Add your database connection string to `.env` (Replace password and ensure the URL starts with `postgresql://`):
    ```env
-   DATABASE_URL=postgresql://username:password@localhost:5432/your_database_name
+   DATABASE_URL=postgresql://postgres.xxx:YOUR_PASSWORD@aws-xxx.pooler.supabase.com:6543/postgres
+   JWT_SECRET_KEY=your_secure_jwt_secret
    ```
 
 ### 3. Backend Setup (Flask)
@@ -109,7 +113,7 @@ python -m venv venv
 source venv/Scripts/activate  # (Windows)
 # OR source venv/bin/activate # (Mac/Linux)
 
-pip install flask flask-cors flask-sqlalchemy scikit-learn nltk python-dotenv werkzeug
+pip install -r requirements.txt
 python app.py
 ```
 *The Flask API will run on http://127.0.0.1:5000 and automatically construct the DB tables.*

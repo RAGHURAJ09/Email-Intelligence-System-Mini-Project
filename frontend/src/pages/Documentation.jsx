@@ -52,10 +52,10 @@ export default function Documentation() {
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <h3 style={{ color: '#a855f7', marginBottom: '10px' }}>Database & Auth</h3>
                             <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.6', color: 'var(--text-muted)' }}>
-                                <li>PostgreSQL</li>
+                                <li>PostgreSQL (Hosted on Supabase)</li>
+                                <li>Supabase Auth (Google OAuth 2.0)</li>
                                 <li>Flask-SQLAlchemy (ORM)</li>
-                                <li>Supabase (Google OAuth)</li>
-                                <li>Werkzeug Security (Hashing)</li>
+                                <li>Flask-JWT-Extended (Tokens)</li>
                             </ul>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -80,7 +80,7 @@ export default function Documentation() {
                         <li style={{ marginBottom: '10px' }}><strong>API Request:</strong> The frontend makes an asynchronous HTTP POST request to the Flask backend's <code>/api/analyze</code> endpoint with the email text payload.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Preprocessing:</strong> The backend receives the text and passes it to the loaded TF-IDF Vectorizer, which converts the raw text into numerical feature vectors.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Prediction Layer:</strong> The vectorized text is fed into three parallel pre-trained ML models (loaded via pickle) to independently predict Intent, Sentiment, and Priority.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Data Persistence:</strong> If the user is logged in, the email and its corresponding analysis results are saved to the PostgreSQL database using SQLAlchemy.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Data Persistence:</strong> If the user is logged in, the email and its corresponding analysis results are saved directly to the cloud Supabase PostgreSQL database using SQLAlchemy.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Response Generation:</strong> A rule-based engine constructs a draft reply based on the predicted intent and sentiment.</li>
                         <li style={{ marginBottom: '10px' }}><strong>UI Update:</strong> The Flask API responds with a JSON object containing the predictions and draft response. The React frontend updates the UI using Framer Motion animations to present the actionable insights to the user.</li>
                     </ol>
@@ -99,6 +99,15 @@ export default function Documentation() {
                                 <li><strong>Intent Model:</strong> Predicts categories like <em>Refund</em>, <em>Tech Support</em>, or <em>Feedback</em>.</li>
                                 <li><strong>Sentiment Model:</strong> Scores the text as <em>Positive</em>, <em>Negative</em>, or <em>Neutral</em>.</li>
                                 <li><strong>Priority Model:</strong> Classifies the urgency as <em>High</em>, <em>Medium</em>, or <em>Low</em>.</li>
+                                <li><strong>Spam Model:</strong> Detects typical promotional or phishing spam independently of other intents.</li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: '10px' }}><strong>Model Evaluation:</strong> To ensure the AI is reliable, I employed an 80/20 train-test split to evaluate the models on unseen data. The models achieved a perfect <strong>1.0000 (100%)</strong> score across all key metrics due to the strong syntactic patterns in the current dataset:
+                            <ul style={{ listStyleType: 'circle', paddingLeft: '20px', marginTop: '10px' }}>
+                                <li><strong>Accuracy (1.0000):</strong> Overall percentage of correct predictions.</li>
+                                <li><strong>Precision (1.0000):</strong> High precision ensures false positives are minimized (meaning a normal query is rarely flagged as a High Priority refund).</li>
+                                <li><strong>Recall (1.0000):</strong> High recall ensures false negatives are minimized (meaning critical issues are not incorrectly ignored).</li>
+                                <li><strong>F1 Score (1.0000):</strong> A harmonized average of both Precision and Recall.</li>
                             </ul>
                         </li>
                         <li style={{ marginBottom: '10px' }}><strong>Confidence Thresholding:</strong> To prevent the AI from making wild guesses on unfamiliar text, I implemented a safety check using <code>predict_proba</code>. If the highest probability score is below 40%, the system safely defaults to a "Query" / "Low Priority" categorization.</li>
@@ -128,7 +137,7 @@ export default function Documentation() {
                 <section style={{ marginBottom: '40px' }}>
                     <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>7. Database Schema</h2>
                     <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
-                        I created two main tables using Flask-SQLAlchemy to manage authentication and history:
+                        I created two main tables using Flask-SQLAlchemy, which are now hosted globally via Supabase, to manage authentication and history:
                     </p>
                     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--text-muted)', fontSize: '1.05rem' }}>
@@ -143,7 +152,7 @@ export default function Documentation() {
                                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                     <td style={{ padding: '10px', fontWeight: 'bold' }}>User</td>
                                     <td style={{ padding: '10px' }}>id (Primary Key), username, password <strong>(Hashed)</strong></td>
-                                    <td style={{ padding: '10px' }}>Stores user credentials for local authentication. Passwords are securely hashed using `pbkdf2:sha256` via Werkzeug. (Google OAuth is handled separately via Supabase).</td>
+                                    <td style={{ padding: '10px' }}>Stores user credentials for local authentication natively. Passwords are securely hashed using `bcrypt`. <em>Alternatively, users authenticate via <strong>Google Sign-In</strong> handled entirely off-chain by Supabase Auth (OAuth 2.0).</em></td>
                                 </tr>
                                 <tr>
                                     <td style={{ padding: '10px', fontWeight: 'bold' }}>EmailHistory</td>
