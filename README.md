@@ -100,11 +100,7 @@ cd Email-Intelligence-System-Mini-Project
 1. Create a new project on **Supabase** (or any cloud PostgreSQL provider).
 2. Go to Project Settings -> Database -> Connection String (URI).
 3. Create a `.env` file in the `/backend` folder.
-4. Add your database connection string to `.env` (Replace password and ensure the URL starts with `postgresql://`):
-   ```env
-   DATABASE_URL=postgresql://postgres.xxx:YOUR_PASSWORD@aws-xxx.pooler.supabase.com:6543/postgres
-   JWT_SECRET_KEY=your_secure_jwt_secret
-   ```
+4. Add your database connection string to `.env` (Replace password and ensure the URL starts with `postgresql://`)
 
 ### 3. Backend Setup (Flask)
 ```bash

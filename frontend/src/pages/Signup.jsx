@@ -37,19 +37,7 @@ export default function Signup() {
     }
 
     try {
-      // 1. Sign up with Supabase for Email Verification & Recovery
-      const { data: supaData, error: supaError } = await supabase.auth.signUp({
-        email: email,
-        password: password
-      });
-
-      if (supaError) {
-        playSound('error');
-        alert("Verification signup failed: " + supaError.message);
-        return;
-      }
-
-      // 2. Register manually in Flask backend for local history link
+      // 1. Register manually in Flask backend for local history link
       const res = await fetch("http://127.0.0.1:5000/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +51,7 @@ export default function Signup() {
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token);
         }
-        alert("Account created! Please check your email for a verification link.");
+        alert("Account created successfully! You can now log in.");
         window.location.href = "/login";
       } else {
         playSound('error');

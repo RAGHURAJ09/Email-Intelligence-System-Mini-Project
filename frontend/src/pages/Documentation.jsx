@@ -11,6 +11,16 @@ export default function Documentation() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
+                <div style={{ marginBottom: '20px' }}>
+                    <button 
+                        onClick={() => window.history.length > 1 ? window.history.back() : window.location.href = '/'}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '15px', fontWeight: '500', cursor: 'pointer', padding: 0 }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'} 
+                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                    >
+                        <span style={{ fontSize: '20px' }}>←</span> Back
+                    </button>
+                </div>
                 <h1 className="hero-gradient-text" style={{ fontSize: '2.8rem', marginBottom: '10px' }}>
                     Project Documentation
                 </h1>

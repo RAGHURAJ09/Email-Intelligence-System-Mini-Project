@@ -9,6 +9,9 @@ import io
 from flask import Response
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_mail import Mail, Message
+import secrets
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -38,6 +41,17 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# -------------------------
+# MAIL CONFIGURATION
+# -------------------------
+app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
+app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
+app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME"))
+mail = Mail(app)
+
 # ------------------------
 # LOAD ML MODEL
 # ------------------------
@@ -59,7 +73,11 @@ class User(db.Model):
     username = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     password = db.Column(db.String(255), nullable=False)
-    is_verified = db.Column(db.Boolean, default=False)
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
+    profile_pic = db.Column(db.Text, nullable=True)
+    fullname = db.Column(db.String(150), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
 
 
 class EmailHistory(db.Model):
@@ -69,6 +87,10 @@ class EmailHistory(db.Model):
     intent = db.Column(db.String(50))
     priority = db.Column(db.String(50))
     sentiment = db.Column(db.String(50))
+    is_spam = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_feedback = db.Column(db.String(10), nullable=True)  # 'helpful' or 'not_helpful'
+
 
 def get_detailed_feedback(intent, priority, sentiment):
     """Generates rich, actionable insights based on classification."""
@@ -111,13 +133,34 @@ def get_detailed_feedback(intent, priority, sentiment):
         "action_items": insights
     }
 
+def detect_spam_keywords(text):
+    """Robust keyword-based spam detection as fallback."""
+    text_lower = text.lower()
+    spam_patterns = [
+        'you have been selected', 'lucky winner', 'claim your prize', 'free prize',
+        'click here to claim', 'act fast', 'offer expires', 'congratulations you won',
+        'million dollar', '$1,000,000', 'wire transfer', 'nigerian prince',
+        'make money fast', 'free gift', 'you are a winner', 'verify your identity now',
+        'call now to claim', 'limited time offer', 'this is not a scam',
+        'earn money from home', 'work from home earn', 'guaranteed income',
+        'double your money', 'click this link now', 'free-prize', 'prize-claim',
+        'pharma', 'buy cheap', 'lowest price guarantee', 'no prescription needed',
+        'urgent reply needed', 'dear beneficiary', 'unsubscribe from this list',
+        'you have won', 'selected as a lucky', 'activate your account immediately'
+    ]
+    spam_score = sum(1 for pattern in spam_patterns if pattern in text_lower)
+    return spam_score >= 2  # Flag if 2+ spam patterns found
+
 def analyze_email(text):
     vec = vectorizer.transform([text])
     
-    # 0. Predict Spam
+    # 0. Predict Spam — use ML model if available, fallback to keywords
     is_spam_pred = False
     if spam_model:
         is_spam_pred = bool(spam_model.predict(vec)[0])
+    # Always apply keyword check as an additional layer
+    if not is_spam_pred:
+        is_spam_pred = detect_spam_keywords(text)
         
     # 1. Predict Intent with Confidence Check
     probs = intent_model.predict_proba(vec)[0]
@@ -211,6 +254,75 @@ def login():
         return jsonify({"error": f"Login failed: {str(e)}"}), 500
 
 
+@app.route("/api/forgot-password", methods=["POST"])
+def forgot_password():
+    """Generate a reset token and send an email."""
+    try:
+        data = request.json
+        email = data.get("email")
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Generate a secure token
+            token = secrets.token_urlsafe(32)
+            user.reset_token = token
+            user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+            db.session.commit()
+
+            # Send Email
+            reset_link = f"{request.host_url}update-password?token={token}"
+            msg = Message("Password Reset Request - Email AI",
+                          recipients=[email])
+            msg.body = f"Hello {user.username},\n\nYou requested a password reset. Click the link below to set a new password:\n\n{reset_link}\n\nThis link will expire in 1 hour.\n\nIf you did not make this request, please ignore this email."
+            
+            try:
+                mail.send(msg)
+                # Always mask with exactly 7 stars: ra*******19@gmail.com
+                local, domain = email.split("@")
+                masked = local[:2] + "*" * 7 + local[-2:] if len(local) > 4 else local[:1] + "*" * 3
+                masked_email = f"{masked}@{domain}"
+                return jsonify({"message": f"Reset link sent to {masked_email}. Check your inbox and spam folder.", "masked_email": masked_email}), 200
+            except Exception as mail_err:
+                print(f"Mail delivery failed: {mail_err}")
+                return jsonify({"error": "Failed to send email. Please check server SMTP configuration."}), 500
+
+        # No local account found — could be a Google OAuth user
+        return jsonify({"message": "No local account found with that email.", "user_found": False}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/reset-password", methods=["POST"])
+def reset_password():
+    """Reset password using a valid token."""
+    try:
+        data = request.json
+        token = data.get("token")
+        new_password = data.get("password")
+
+        if not token or not new_password:
+            return jsonify({"error": "Missing token or password"}), 400
+
+        user = User.query.filter_by(reset_token=token).first()
+        
+        if not user or user.reset_token_expiry < datetime.utcnow():
+            return jsonify({"error": "Invalid or expired token"}), 400
+
+        # Update password
+        user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        user.reset_token = None
+        user.reset_token_expiry = None
+        db.session.commit()
+
+        return jsonify({"message": "Password updated successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # -------------------------
 # EMAIL ANALYSIS
 # -------------------------
@@ -252,10 +364,12 @@ def analyze():
                 email=email,
                 intent=intent,
                 priority=priority,
-                sentiment=sentiment
+                sentiment=sentiment,
+                is_spam=is_spam
             )
             db.session.add(record)
             db.session.commit()
+            result["record_id"] = record.id  # Return record ID for feedback
 
         return jsonify(result), 200
 
@@ -265,8 +379,9 @@ def analyze():
         return jsonify({"error": "Failed to analyze email due to an internal error.", "details": str(e)}), 500
 
 
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
-
+# -------------------------
+# HISTORY ROUTE
+# -------------------------
 @app.route("/api/history/<user>", methods=["GET"])
 @jwt_required(optional=True)
 def get_history(user):
@@ -282,24 +397,156 @@ def get_history(user):
 
         result = []
         for r in records:
-            is_spam = r.intent == "Spam"
+            is_spam = r.is_spam if r.is_spam is not None else False
             detailed_feedback = get_detailed_feedback(r.intent, r.priority, r.sentiment)
             
             if is_spam:
                 detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
                 
             result.append({
+                "id": r.id,
                 "email": r.email,
                 "intent": r.intent,
                 "priority": r.priority,
                 "sentiment": r.sentiment,
                 "is_spam": is_spam,
+                "created_at": r.created_at.strftime("%d %b %Y, %I:%M %p") if r.created_at else None,
+                "user_feedback": r.user_feedback,
                 "detailed_feedback": detailed_feedback
             })
 
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": f"Failed to retrieve history: {str(e)}"}), 500
+
+@app.route("/api/admin/history", methods=["GET"])
+@jwt_required()
+def get_admin_history():
+    try:
+        current_identity = get_jwt_identity()
+        if current_identity != "admin":
+             return jsonify({"error": "Unauthorized access"}), 403
+             
+        records = EmailHistory.query.order_by(EmailHistory.id.desc()).all()
+        result = []
+        for r in records:
+            result.append({
+                "id": r.id,
+                "user": r.user,
+                "email": r.email,
+                "intent": r.intent,
+                "priority": r.priority,
+                "sentiment": r.sentiment
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# -------------------------
+# ACCOUNT MANAGEMENT ROUTES
+# -------------------------
+@app.route("/api/user/details/<user_id>", methods=["GET"])
+@jwt_required(optional=True)
+def get_user_details(user_id):
+    try:
+        current_identity = get_jwt_identity()
+        if current_identity and current_identity != user_id:
+             return jsonify({"error": "Unauthorized access to user details"}), 403
+             
+        user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        return jsonify({
+            "username": user.username,
+            "email": user.email,
+            "fullname": user.fullname,
+            "bio": user.bio,
+            "profile_pic": user.profile_pic
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/user/details/<user_id>", methods=["PUT"])
+@jwt_required(optional=True)
+def update_user_details(user_id):
+    try:
+        current_identity = get_jwt_identity()
+        if current_identity and current_identity != user_id:
+             return jsonify({"error": "Unauthorized access"}), 403
+             
+        user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
+        
+        # Auto-create profile record for users who signed in via Google (Supabase) entirely off-chain
+        if not user:
+            # Generate a random impossible password for safely tracking Google accounts natively
+            random_pw = bcrypt.generate_password_hash(secrets.token_hex(16)).decode('utf-8')
+            user = User(username=user_id, email=user_id, password=random_pw)
+            db.session.add(user)
+        
+        data = request.json
+        if "fullname" in data:
+            user.fullname = data["fullname"]
+        if "bio" in data:
+            user.bio = data["bio"]
+        if "profile_pic" in data:
+            user.profile_pic = data["profile_pic"]
+            
+        db.session.commit()
+        return jsonify({"message": "Details updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/user/password", methods=["PUT"])
+@jwt_required()
+def update_user_password():
+    try:
+        current_identity = get_jwt_identity()
+        user = User.query.filter_by(username=current_identity).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        data = request.json
+        current_password = data.get("current_password")
+        new_password = data.get("new_password")
+        
+        if not current_password or not new_password:
+            return jsonify({"error": "Missing passwords"}), 400
+            
+        if not bcrypt.check_password_hash(user.password, current_password):
+            return jsonify({"error": "Incorrect current password"}), 401
+            
+        user.password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        db.session.commit()
+        
+        return jsonify({"message": "Password updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# -------------------------
+# USER FEEDBACK ROUTE
+# -------------------------
+@app.route("/api/feedback", methods=["POST"])
+def submit_feedback():
+    """Record user's thumbs up/down on an analysis result."""
+    try:
+        data = request.json
+        record_id = data.get("id")
+        feedback = data.get("feedback")  # 'helpful' or 'not_helpful'
+
+        if not record_id or feedback not in ['helpful', 'not_helpful']:
+            return jsonify({"error": "Invalid feedback data"}), 400
+
+        record = EmailHistory.query.get(record_id)
+        if not record:
+            return jsonify({"error": "Record not found"}), 404
+
+        record.user_feedback = feedback
+        db.session.commit()
+        return jsonify({"message": "Feedback recorded. Thank you!"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # -------------------------
 # CSV EXPORT ROUTE
@@ -386,7 +633,68 @@ def generate_response():
     return jsonify({"response": response})
 
 
+@app.route("/api/feedback/correct", methods=["POST"])
+def correct_feedback():
+    """Receive user's corrected classification to retrain the model."""
+    try:
+        data = request.json
+        record_id = data.get("id")
+        intent = data.get("intent")
+        sentiment = data.get("sentiment")
+        priority = data.get("priority")
+
+        if not record_id or not intent or not sentiment or not priority:
+            return jsonify({"error": "Missing correction fields"}), 400
+
+        record = EmailHistory.query.get(record_id)
+        if not record:
+            return jsonify({"error": "Record not found"}), 404
+
+        record.intent = intent.capitalize()
+        record.sentiment = sentiment.capitalize()
+        record.priority = priority.capitalize()
+        record.user_feedback = 'corrected'
+        db.session.commit()
+
+        import os, csv
+        csv_path = os.path.join(os.path.dirname(__file__), "../dataset", "emails.csv")
+        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                record.email,
+                intent.lower(),
+                sentiment.capitalize(),
+                priority.capitalize(),
+                "Urgent" if priority.lower() == "high" else "Normal",
+                "support"
+            ])
+
+        return jsonify({"message": "Correction recorded and model training dataset updated!"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+        # Migrate new columns safely
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                for col_sql in [
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100)',
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP',
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT',
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS fullname VARCHAR(150)',
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS bio TEXT',
+                    'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()',
+                    'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS user_feedback VARCHAR(20)',
+                    'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT false',
+                ]:
+                    conn.execute(text(col_sql))
+                conn.commit()
+            print("✅ DB migration complete.")
+        except Exception as e:
+            print(f"\u26a0\ufe0f Migration note: {e}")
     app.run(debug=True)

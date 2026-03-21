@@ -20,6 +20,15 @@ export default function UpdatePassword() {
   }, []);
 
   const handleUpdate = async () => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const token = queryParams.get("token");
+
+    if (!token) {
+      playSound('error');
+      alert("Invalid or missing reset token. Please request a new link.");
+      return;
+    }
+
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
       playSound('error');
@@ -29,11 +38,14 @@ export default function UpdatePassword() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
+      const res = await fetch("http://127.0.0.1:5000/api/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
       });
+      const data = await res.json();
 
-      if (!error) {
+      if (res.ok) {
         playSound('success');
         setStatus("✅ Password updated successfully! Redirecting...");
         setTimeout(() => {
@@ -41,7 +53,7 @@ export default function UpdatePassword() {
         }, 2000);
       } else {
         playSound('error');
-        setStatus("❌ " + (error.message || "Failed to update password."));
+        setStatus("❌ " + (data.error || "Failed to update password."));
       }
     } catch (err) {
       console.error(err);

@@ -12,6 +12,13 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [recordId, setRecordId] = useState(null);
+  
+  // Correction State
+  const [correctionMode, setCorrectionMode] = useState(false);
+  const [correctionData, setCorrectionData] = useState({ intent: '', sentiment: '', priority: '' });
+  const [correctionSent, setCorrectionSent] = useState(false);
 
   const user = localStorage.getItem("user");
   const resultRef = useRef(null);
@@ -41,6 +48,10 @@ export default function Home() {
     }
     setLoading(true);
     setResult(null);
+    setFeedbackSent(false);
+    setRecordId(null);
+    setCorrectionMode(false);
+    setCorrectionSent(false);
 
     // Artificial delay for smooth UX
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -48,6 +59,7 @@ export default function Home() {
     try {
       const data = await analyzeEmail(email, user);
       setResult(data);
+      if (data.record_id) setRecordId(data.record_id);
       // Play smart real-time audio feedback based on analysis logic
       if (data && data.priority === 'High') {
         playSound('high-priority');
@@ -76,7 +88,57 @@ export default function Home() {
   const reset = () => {
     setEmail("");
     setResult(null);
+    setFeedbackSent(false);
+    setRecordId(null);
+    setCorrectionMode(false);
+    setCorrectionSent(false);
     setBgState('default');
+  };
+
+  const submitFeedback = async (type) => {
+    if (!recordId || feedbackSent) return;
+    setFeedbackSent(true);
+
+    if (type === 'not_helpful') {
+      setCorrectionMode(true);
+      setCorrectionData({
+        intent: result?.intent || 'Query',
+        sentiment: result?.sentiment || 'Neutral',
+        priority: result?.priority || 'Low'
+      });
+    }
+
+    try {
+      await fetch("http://127.0.0.1:5000/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: recordId, feedback: type })
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const submitCorrection = async () => {
+    if (!recordId) return;
+    setCorrectionSent(true);
+    setCorrectionMode(false);
+    try {
+      await fetch("http://127.0.0.1:5000/api/feedback/correct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: recordId,
+          intent: correctionData.intent,
+          sentiment: correctionData.sentiment,
+          priority: correctionData.priority
+        })
+      });
+      playSound('high-priority'); // success chime
+      setNotification("✅ AI Model Training Queue Updated!");
+      setTimeout(() => setNotification(""), 2000);
+    } catch (e) {
+      console.error(e);
+      setCorrectionSent(false);
+    }
   };
 
   return (
@@ -97,10 +159,55 @@ export default function Home() {
               Paste customer communication below to extract intent, sentiment, and priority simultaneously.
             </p>
 
+            {/* Sample Email Chips */}
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Try a sample:</p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  {
+                    label: '🚨 Spam Email',
+                    text: "Congratulations! You have been selected as a lucky winner of $1,000,000 prize! Click this link now to claim your reward: www.free-prize-claim.xyz. Act fast, offer expires in 24 hours! Call +1-800-FREE-WIN to verify your identity. This is not a scam, guaranteed!"
+                  },
+                  {
+                    label: '😠 Refund Request',
+                    text: "I am extremely disappointed with my recent purchase. The product arrived broken and the packaging was damaged. I have been a loyal customer for 5 years and this is unacceptable. I want a full refund immediately or I will escalate this to consumer court."
+                  },
+                  {
+                    label: '😊 Positive Feedback',
+                    text: "I just wanted to say how amazing your customer support team is! Sarah helped me resolve my billing issue within minutes. The service was incredibly fast and friendly. I will definitely recommend your company to all my friends and family."
+                  },
+                  {
+                    label: '❓ Product Query',
+                    text: "Hello, I would like to know more about the premium subscription plan. Can you please provide details about what features are included and whether there is a free trial available? Also, is there a student discount?"
+                  }
+                ].map((sample) => (
+                  <button
+                    key={sample.label}
+                    onClick={() => setEmail(sample.text)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: 'rgba(255,255,255,0.04)',
+                      color: '#94a3b8',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={e => { e.target.style.background = 'rgba(99,102,241,0.15)'; e.target.style.color = '#a5b4fc'; e.target.style.borderColor = 'rgba(99,102,241,0.4)'; }}
+                    onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.04)'; e.target.style.color = '#94a3b8'; e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  >
+                    <span className="no-invert" style={{marginRight: '4px'}}>{sample.label.split(' ')[0]}</span> {sample.label.split(' ').slice(1).join(' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <textarea
-              className="tech-textarea" // Retaining utility class for styling
+              className="tech-textarea"
               style={{ minHeight: "180px", fontSize: "16px", lineHeight: "1.6" }}
-              placeholder="e.g., 'I am very frustrated with the recent downtime and would like to request a refund immediately...'"
+              placeholder="Paste a customer email here, or click a sample above to try..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -200,6 +307,76 @@ export default function Home() {
                       </p>
                     )}
                   </div>
+                  {/* Spam Badge */}
+                  {result.is_spam && (
+                    <div style={{ marginTop: '16px', padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <span className="no-invert" style={{ fontSize: '18px' }}>🚨</span>
+                      <div>
+                        <p style={{ margin: 0, color: '#f87171', fontWeight: 700, fontSize: '13px' }}>Spam Detected</p>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '12px' }}>This email shows strong spam indicators. Treat with caution.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* User Feedback */}
+                  {recordId && (
+                    <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                      {feedbackSent && !correctionMode && !correctionSent ? (
+                         <p style={{ color: '#10b981', fontSize: '13px', margin: 0 }}>✅ Thanks for your feedback! It helps improve our AI.</p>
+                      ) : correctionSent ? (
+                         <p style={{ color: '#10b981', fontSize: '13px', margin: 0 }}>✅ Model retrained with your correction automatically. Thank you!</p>
+                      ) : correctionMode ? (
+                        <div style={{ marginTop: '12px', textAlign: 'left', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                           <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#e2e8f0', fontWeight: 'bold' }}>Help us improve. What are the correct labels?</p>
+                           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '12px', marginBottom: '16px' }}>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                               <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Intent</label>
+                               <select value={correctionData.intent} onChange={e => setCorrectionData({...correctionData, intent: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
+                                 <option value="Issue" style={{ background: '#1e293b' }}>Issue</option>
+                                 <option value="Query" style={{ background: '#1e293b' }}>Query</option>
+                                 <option value="Refund" style={{ background: '#1e293b' }}>Refund</option>
+                                 <option value="Escalation" style={{ background: '#1e293b' }}>Escalation</option>
+                                 <option value="Feedback" style={{ background: '#1e293b' }}>Feedback</option>
+                               </select>
+                             </div>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                               <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Sentiment</label>
+                               <select value={correctionData.sentiment} onChange={e => setCorrectionData({...correctionData, sentiment: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
+                                 <option value="Positive" style={{ background: '#1e293b' }}>Positive</option>
+                                 <option value="Neutral" style={{ background: '#1e293b' }}>Neutral</option>
+                                 <option value="Negative" style={{ background: '#1e293b' }}>Negative</option>
+                               </select>
+                             </div>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                               <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Priority</label>
+                               <select value={correctionData.priority} onChange={e => setCorrectionData({...correctionData, priority: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
+                                 <option value="High" style={{ background: '#1e293b' }}>High</option>
+                                 <option value="Medium" style={{ background: '#1e293b' }}>Medium</option>
+                                 <option value="Low" style={{ background: '#1e293b' }}>Low</option>
+                               </select>
+                             </div>
+                           </div>
+                           <button className="btn-primary" onClick={submitCorrection} style={{ width: '100%', fontSize: '13px', padding: '10px' }}>
+                             Train Model with Correction
+                           </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '10px' }}>Was this analysis helpful?</p>
+                          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => submitFeedback('helpful')}
+                              style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.08)', color: '#10b981', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                            >👍 Helpful</button>
+                            <button
+                              onClick={() => submitFeedback('not_helpful')}
+                              style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(248,113,113,0.4)', background: 'rgba(248,113,113,0.08)', color: '#f87171', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                            >👎 Not Helpful</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

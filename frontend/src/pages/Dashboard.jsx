@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterIntent, setFilterIntent] = useState("All");
+  const [filterSpam, setFilterSpam] = useState("All"); // 'All' | 'Spam' | 'Not Spam'
   const user = localStorage.getItem("user");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -72,7 +73,8 @@ export default function Dashboard() {
       item.intent.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = filterPriority === "All" || item.priority === filterPriority;
     const matchesIntent = filterIntent === "All" || item.intent.toLowerCase() === filterIntent.toLowerCase();
-    return matchesSearch && matchesPriority && matchesIntent;
+    const matchesSpam = filterSpam === "All" || (filterSpam === "Spam" ? item.is_spam : !item.is_spam);
+    return matchesSearch && matchesPriority && matchesIntent && matchesSpam;
   });
 
   const doughnutData = {
@@ -144,9 +146,11 @@ export default function Dashboard() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="stat-card">
-          <span className="stat-label">System Status</span>
-          <span className="stat-value" style={{ fontSize: '20px', color: '#10b981' }}>Operational</span>
-          <span className="stat-trend" style={{ marginBottom: '16px' }}>All systems normal</span>
+          <span className="stat-label">Spam Detected</span>
+          <span className="stat-value" style={{ color: history.filter(h => h.is_spam).length > 0 ? '#f87171' : '#34d399' }}>
+            {history.filter(h => h.is_spam).length}
+          </span>
+          <span className="stat-trend" style={{ color: '#f87171' }}>Flagged Emails</span>
         </motion.div>
 
 
@@ -215,6 +219,18 @@ export default function Dashboard() {
                 <option value="feedback" style={{ background: '#1e293b' }}>Feedback</option>
                 <option value="escalation" style={{ background: '#1e293b' }}>Escalation</option>
               </select>
+              <select
+                value={filterSpam}
+                onChange={(e) => setFilterSpam(e.target.value)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none', cursor: 'pointer'
+                }}
+              >
+                <option value="All" style={{ background: '#1e293b' }}>All Types</option>
+                <option value="Spam" style={{ background: '#1e293b' }}>🚨 Spam Only</option>
+                <option value="Not Spam" style={{ background: '#1e293b' }}>✅ Not Spam</option>
+              </select>
               <a
                 href={`${API}/export/${encodeURIComponent(user)}`}
                 download
@@ -273,12 +289,19 @@ export default function Dashboard() {
                         marginTop: '0px',
                         flexShrink: 0
                       }} />
-                      <span style={{ fontSize: '16px', flexShrink: 0, width: '16px', textAlign: 'center', marginTop: '2px' }}>
+                      <span className="no-invert" style={{ fontSize: '16px', flexShrink: 0, width: '16px', textAlign: 'center', marginTop: '2px' }}>
                         {item.sentiment === 'Positive' ? '😊' : (item.sentiment === 'Negative' ? '😠' : '😐')}
                       </span>
-                      <span style={{ maxWidth: '560px', fontWeight: '500', fontSize: '14px', color: '#f8fafc', lineHeight: '1.5', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {item.email}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                        <span style={{ maxWidth: '560px', fontWeight: '500', fontSize: '14px', color: '#f1f5f9', lineHeight: '1.5', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {item.email}
+                        </span>
+                        {item.created_at && (
+                          <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 500, opacity: 0.85 }}>
+                            <span className="no-invert">🕐</span> {item.created_at}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <span style={{
@@ -354,7 +377,7 @@ export default function Dashboard() {
                           gap: '4px',
                           whiteSpace: 'nowrap'
                         }}>
-                          🚨 Spam
+                          <span className="no-invert">🚨</span> Spam
                         </span>
                       )}
                     </div>
@@ -404,17 +427,36 @@ export default function Dashboard() {
                   </div>
                   <div className="modal-meta-item">
                     <span className="modal-label">Priority</span>
-                    <span
-                      className="modal-value"
-                      style={{
-                        color: selectedEmail.priority === 'High' ? '#f87171' :
-                          (selectedEmail.priority === 'Medium' ? '#fbbf24' : '#34d399')
-                      }}
-                    >
+                    <span className="modal-value" style={{ color: selectedEmail.priority === 'High' ? '#f87171' : (selectedEmail.priority === 'Medium' ? '#fbbf24' : '#34d399') }}>
                       {selectedEmail.priority}
                     </span>
                   </div>
+                  {selectedEmail.created_at && (
+                    <div className="modal-meta-item">
+                      <span className="modal-label">Analyzed At</span>
+                      <span className="modal-value" style={{ color: '#94a3b8', fontSize: '12px' }}>{selectedEmail.created_at}</span>
+                    </div>
+                  )}
+                  {selectedEmail.user_feedback && (
+                    <div className="modal-meta-item">
+                      <span className="modal-label">Your Feedback</span>
+                      <span className="modal-value">
+                        {selectedEmail.user_feedback === 'helpful' ? '👍 Helpful' : (selectedEmail.user_feedback === 'corrected' ? '🛠️ Corrected' : '👎 Not Helpful')}
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Spam Badge */}
+                {selectedEmail.is_spam && (
+                  <div style={{ marginBottom: '20px', padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span className="no-invert" style={{ fontSize: '18px' }}>🚨</span>
+                    <div>
+                      <p style={{ margin: 0, color: '#f87171', fontWeight: 700, fontSize: '13px' }}>Spam Detected</p>
+                      <p style={{ margin: 0, color: '#94a3b8', fontSize: '12px' }}>This email shows strong spam indicators. Treat with caution.</p>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                   <span className="modal-label" style={{ display: 'block', marginBottom: '8px' }}>Full Content</span>
@@ -433,7 +475,7 @@ export default function Dashboard() {
                           <span style={{ color: '#94a3b8', fontSize: '12px', display: 'block', marginBottom: '6px' }}>DETECTED TONES</span>
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {selectedEmail.detailed_feedback.tone_descriptors.map((tone, idx) => (
-                              <span key={idx} style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '8px', fontSize: '11px', color: '#e2e8f0', textTransform: 'capitalize' }}>
+                              <span key={idx} style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', color: '#f8fafc', textTransform: 'capitalize', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 {tone}
                               </span>
                             ))}
@@ -445,7 +487,13 @@ export default function Dashboard() {
                         <span style={{ color: '#94a3b8', fontSize: '12px', display: 'block', marginBottom: '6px' }}>ACTION ITEMS</span>
                         <ul style={{ margin: 0, paddingLeft: '20px', color: '#e2e8f0', fontSize: '14px', lineHeight: '1.6' }}>
                           {selectedEmail.detailed_feedback.action_items.map((item, idx) => (
-                            <li key={idx} style={{ marginBottom: '4px' }}>{item}</li>
+                            <li key={idx} style={{ marginBottom: '6px' }}>
+                              {item.includes('🚨') ? (
+                                <><span className="no-invert">🚨</span> {item.replace('🚨', '')}</>
+                              ) : item.includes('✨') ? (
+                                <><span className="no-invert">✨</span> {item.replace('✨', '')}</>
+                              ) : item}
+                            </li>
                           ))}
                         </ul>
                       </div>

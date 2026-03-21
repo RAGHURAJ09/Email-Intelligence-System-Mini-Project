@@ -119,7 +119,7 @@ export default function Login() {
           <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
             Forgot your password?
             <a href="/forgot-password" style={{ color: '#6366f1', marginLeft: '4px', textDecoration: 'none', fontWeight: 600 }}>
-              Reset it
+              Reset Password
             </a>
           </p>
           <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
