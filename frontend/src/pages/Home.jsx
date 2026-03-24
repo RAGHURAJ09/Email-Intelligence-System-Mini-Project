@@ -4,6 +4,7 @@ import Hero from "../components/Hero";
 import { analyzeEmail } from "../api";
 import { useBackground } from "../context/BackgroundContext";
 import { playSound } from "../utils/soundEffects";
+import { getSentimentVisual, normalizeSentiment, sentimentTone } from "../utils/sentiment";
 
 export default function Home() {
   // States
@@ -64,8 +65,9 @@ export default function Home() {
       if (data && data.priority === 'High') {
         playSound('high-priority');
       } else if (data && data.sentiment) {
-        playSound(data.sentiment.toLowerCase());
-        setBgState(data.sentiment);
+        const tone = sentimentTone(data.sentiment);
+        playSound(tone === 'mixed' ? 'neutral' : tone);
+        setBgState(normalizeSentiment(data.sentiment));
       }
       // Show custom notification
       setNotification("✅ Analysis Complete!");
@@ -247,15 +249,21 @@ export default function Home() {
 
                   <div className="result-row">
                     <span className="result-key">Sentiment Analysis</span>
+                    {(() => {
+                      const visuals = getSentimentVisual(result.sentiment);
+                      const sentimentLabel = normalizeSentiment(result.sentiment);
+                      return (
                     <span
                       className="result-val"
                       style={{
-                        color: result.sentiment === "Positive" ? "#10b981" :
-                          (result.sentiment === "Negative" ? "#f87171" : "#fbbf24")
+                        color: visuals.color
                       }}
                     >
-                      {result.sentiment}
+                      {sentimentLabel}
+                      {result.sentiment_strength ? ` • ${result.sentiment_strength}%` : ""}
                     </span>
+                      );
+                    })()}
                   </div>
 
                   <div className="result-row">
@@ -302,7 +310,7 @@ export default function Home() {
                       <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.5', color: '#e2e8f0' }}>
                         {result.priority === 'High'
                           ? "Escalate to senior support team immediately. Draft apology response."
-                          : (result.sentiment === 'Negative' ? "Flag for follow-up review. Monitor customer satisfaction." : "Standard response protocol applies.")
+                          : (sentimentTone(result.sentiment) === 'negative' ? "Flag for follow-up review. Monitor customer satisfaction." : "Standard response protocol applies.")
                         }
                       </p>
                     )}
@@ -341,10 +349,15 @@ export default function Home() {
                              </div>
                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Sentiment</label>
-                               <select value={correctionData.sentiment} onChange={e => setCorrectionData({...correctionData, sentiment: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
+                             <select value={correctionData.sentiment} onChange={e => setCorrectionData({...correctionData, sentiment: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
+                                 <option value="Very Positive" style={{ background: '#1e293b' }}>Very Positive</option>
                                  <option value="Positive" style={{ background: '#1e293b' }}>Positive</option>
+                                 <option value="Slightly Positive" style={{ background: '#1e293b' }}>Slightly Positive</option>
                                  <option value="Neutral" style={{ background: '#1e293b' }}>Neutral</option>
+                                 <option value="Mixed" style={{ background: '#1e293b' }}>Mixed</option>
+                                 <option value="Slightly Negative" style={{ background: '#1e293b' }}>Slightly Negative</option>
                                  <option value="Negative" style={{ background: '#1e293b' }}>Negative</option>
+                                 <option value="Very Negative" style={{ background: '#1e293b' }}>Very Negative</option>
                                </select>
                              </div>
                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

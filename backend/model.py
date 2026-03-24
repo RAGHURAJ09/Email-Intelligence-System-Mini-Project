@@ -63,7 +63,12 @@ def train_and_eval(name, model, X_train, y_train, X_test, y_test, average='weigh
 intent_model = train_and_eval("Intent", LogisticRegression(max_iter=1000), X_train, y_int_train, X_test, y_int_test)
 sentiment_model = train_and_eval("Sentiment", LogisticRegression(max_iter=1000), X_train, y_sen_train, X_test, y_sen_test)
 priority_model = train_and_eval("Priority", LogisticRegression(max_iter=1000), X_train, y_pri_train, X_test, y_pri_test)
-spam_model = train_and_eval("Spam Detection", LogisticRegression(max_iter=1000, class_weight='balanced'), X_train, y_spm_train, X_test, y_spm_test, average='binary')
+
+from sklearn.naive_bayes import MultinomialNB
+spam_model = train_and_eval("Spam Detection", MultinomialNB(), X_train, y_spm_train, X_test, y_spm_test, average='binary')
+
+# Ensure the spam_model knows about all classes (0 and 1) for partial_fit later
+spam_model.partial_fit(X_train[0:1], y_spm_train[0:1], classes=[0, 1])
 
 # Save everything
 models = {

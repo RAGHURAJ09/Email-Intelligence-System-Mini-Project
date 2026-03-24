@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../utils/supabase";
 import { playSound } from "../utils/soundEffects";
@@ -9,7 +9,60 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [captchaValid, setCaptchaValid] = useState(false);
 
+  const [otpMode, setOtpMode] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [isOauthFlow, setIsOauthFlow] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth_2fa') === 'true' && localStorage.getItem('pending_oauth_user')) {
+      setOtpMode(true);
+      setIsOauthFlow(true);
+      // We do not require a captcha for merely entering an OTP side-channel after a valid OAuth verification.
+      setCaptchaValid(true); 
+    }
+  }, []);
+
   const login = async () => {
+    if (isOauthFlow) {
+      if (!otp.trim()) {
+         playSound('error');
+         alert("Please enter the 2FA code.");
+         return;
+      }
+      try {
+        const payload = {
+          username: localStorage.getItem('pending_oauth_user'),
+          otp: otp,
+          is_oauth: true
+        };
+        const res = await fetch("http://127.0.0.1:5000/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        
+        if (data.message && !data.error) {
+          playSound('success');
+          localStorage.setItem("user", payload.username);
+          localStorage.removeItem('pending_oauth_user');
+          if (data.access_token) {
+            localStorage.setItem("access_token", data.access_token);
+          }
+          window.location.href = "/";
+        } else {
+          playSound('error');
+          alert("Invalid 2FA code: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        console.error(err);
+        playSound('error');
+        alert("OAuth 2FA Login failed");
+      }
+      return;
+    }
+
     if (!username.trim() || !password) {
       playSound('error');
       alert("Please enter both username and password.");
@@ -23,12 +76,28 @@ export default function Login() {
     }
 
     try {
+      const payload = { username, password };
+      if (otpMode) {
+        if (!otp.trim()) {
+           playSound('error');
+           alert("Please enter the 2FA code.");
+           return;
+        }
+        payload.otp = otp;
+      }
+
       const res = await fetch("http://127.0.0.1:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
+
+      if (data.requires_2fa) {
+        playSound('success');
+        setOtpMode(true);
+        return;
+      }
 
       if (data.message && !data.error) {
         playSound('success');
@@ -50,7 +119,12 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google"
+      provider: "google",
+      options: {
+        queryParams: {
+          prompt: 'select_account'
+        }
+      }
     });
     if (error) console.log(error);
   };
@@ -67,23 +141,38 @@ export default function Login() {
         <p className="auth-sub">Enter your credentials to access the platform</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+          {!otpMode ? (
+            <>
+              <input
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
 
-          <Captcha onVerify={setCaptchaValid} />
+              <Captcha onVerify={setCaptchaValid} />
+            </>
+          ) : (
+            <>
+              <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>Two-Factor Authentication is enabled. Please enter your 6-digit code.</p>
+              <input
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                style={{ letterSpacing: '8px', textAlign: 'center', fontSize: '20px' }}
+              />
+            </>
+          )}
 
           <button className="btn-primary" onClick={login} style={{ width: '100%', marginTop: '8px' }}>
-            Sign In
+            {otpMode ? "Verify Code" : "Sign In"}
           </button>
         </div>
 

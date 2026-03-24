@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 import API from '../api';
+import { getSentimentVisual, sentimentScore, normalizeSentiment } from "../utils/sentiment";
 
 // Register ChartJS
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
@@ -19,6 +20,8 @@ export default function Dashboard() {
   const user = localStorage.getItem("user");
 
   const [isLoading, setIsLoading] = useState(true);
+  const modalVisual = selectedEmail ? getSentimentVisual(selectedEmail.sentiment) : null;
+  const modalSentimentLabel = selectedEmail ? normalizeSentiment(selectedEmail.sentiment) : "";
 
   useEffect(() => {
     if (user) {
@@ -41,7 +44,8 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           intent: selectedEmail.intent,
-          sentiment: selectedEmail.sentiment
+          sentiment: selectedEmail.sentiment,
+          priority: selectedEmail.priority
         })
       });
       const data = await res.json();
@@ -53,13 +57,41 @@ export default function Dashboard() {
     }
   };
 
+  const handleSpamFeedback = async (isSpam) => {
+    if (!selectedEmail) return;
+    try {
+      const res = await fetch(`${API}/feedback/spam`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedEmail.id,
+          is_spam: isSpam
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(prev => prev.map(item => 
+          item.id === selectedEmail.id 
+            ? { ...item, is_spam: isSpam, user_feedback: 'spam_corrected' } 
+            : item
+        ));
+        setSelectedEmail(prev => ({ ...prev, is_spam: isSpam, user_feedback: 'spam_corrected' }));
+        alert(data.message || "Feedback recorded. Model adapted!");
+      } else {
+        alert("Failed to update feedback.");
+      }
+    } catch (err) {
+      console.error("Failed to update spam feedback:", err);
+    }
+  };
+
   if (!user) return <h2 className="center">Please Login to View Dashboard</h2>;
 
   // --- Statistics Calculation ---
   const totalEmails = history.length;
   const highPriorityCount = history.filter(h => h.priority === "High").length;
   const avgSentiment = history.length > 0
-    ? (history.reduce((acc, curr) => acc + (curr.sentiment === "Positive" ? 100 : (curr.sentiment === "Negative" ? 0 : 50)), 0) / history.length).toFixed(0)
+    ? (history.reduce((acc, curr) => acc + sentimentScore(curr.sentiment), 0) / history.length).toFixed(0)
     : 0;
 
   // --- Chart Data Preparation ---
@@ -100,7 +132,7 @@ export default function Dashboard() {
     datasets: [
       {
         label: 'Sentiment Score (Last 39)',
-        data: history.slice(0, 39).reverse().map(h => h.sentiment === "Positive" ? 100 : (h.sentiment === "Negative" ? 20 : 60)),
+        data: history.slice(0, 39).reverse().map(h => sentimentScore(h.sentiment)),
         borderColor: '#a855f7',
         backgroundColor: 'rgba(168, 85, 247, 0.2)',
         tension: 0.4,
@@ -262,7 +294,10 @@ export default function Dashboard() {
                   <span style={{ justifySelf: 'center' }}>Priority</span>
                   <span style={{ justifySelf: 'center' }}>Sentiment</span>
                 </div>
-                {filteredHistory.map((item, i) => (
+                {filteredHistory.map((item, i) => {
+                  const visuals = getSentimentVisual(item.sentiment);
+                  const sentimentLabel = normalizeSentiment(item.sentiment);
+                  return (
                   <motion.div
                     whileHover={{ backgroundColor: "rgba(255,255,255,0.25)" }}
                     key={i}
@@ -285,12 +320,12 @@ export default function Dashboard() {
                         width: '3px',
                         height: 'auto',
                         borderRadius: '2px',
-                        backgroundColor: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
+                        backgroundColor: visuals.color,
                         marginTop: '0px',
                         flexShrink: 0
                       }} />
                       <span className="no-invert" style={{ fontSize: '16px', flexShrink: 0, width: '16px', textAlign: 'center', marginTop: '2px' }}>
-                        {item.sentiment === 'Positive' ? '😊' : (item.sentiment === 'Negative' ? '😠' : '😐')}
+                        {visuals.icon}
                       </span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
                         <span style={{ maxWidth: '560px', fontWeight: '500', fontSize: '14px', color: '#f1f5f9', lineHeight: '1.5', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -349,19 +384,19 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', justifySelf: 'center' }}>
                       <span style={{
                         fontSize: '12px',
-                        color: item.sentiment === 'Positive' ? '#10b981' : (item.sentiment === 'Negative' ? '#f87171' : '#fbbf24'),
+                        color: visuals.color,
                         fontWeight: '600',
                         padding: '6px 12px',
                         borderRadius: '16px',
-                        backgroundColor: item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.1)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(251, 191, 36, 0.1)'),
-                        border: `1px solid ${item.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.25)' : (item.sentiment === 'Negative' ? 'rgba(248, 113, 113, 0.25)' : 'rgba(251, 191, 36, 0.25)')}`,
+                        backgroundColor: visuals.bg,
+                        border: `1px solid ${visuals.border}`,
                         backdropFilter: 'blur(8px)',
                         WebkitBackdropFilter: 'blur(8px)',
                         textAlign: 'center',
                         display: 'inline-block',
                         whiteSpace: 'nowrap'
                       }}>
-                        {item.sentiment}
+                        {sentimentLabel}
                       </span>
                       {item.is_spam && (
                         <span style={{
@@ -382,7 +417,7 @@ export default function Dashboard() {
                       )}
                     </div>
                   </motion.div>
-                ))}
+                )})}
               </div>
             ) : (
               // Empty State
@@ -418,11 +453,10 @@ export default function Dashboard() {
                     <span
                       className="modal-value"
                       style={{
-                        color: selectedEmail.sentiment === 'Positive' ? '#10b981' :
-                          (selectedEmail.sentiment === 'Negative' ? '#f87171' : '#fbbf24')
+                        color: modalVisual?.color
                       }}
                     >
-                      {selectedEmail.sentiment}
+                      {modalSentimentLabel}
                     </span>
                   </div>
                   <div className="modal-meta-item">

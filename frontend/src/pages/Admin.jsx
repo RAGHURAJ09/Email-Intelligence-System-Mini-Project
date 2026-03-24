@@ -11,6 +11,7 @@ import {
 } from "chart.js";
 import { fetchAdminHistory } from "../api";
 import { motion } from "framer-motion";
+import { normalizeSentiment, SENTIMENT_ORDER, getSentimentVisual } from "../utils/sentiment";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ArcElement);
 
@@ -81,14 +82,11 @@ export default function Admin() {
     ]
   };
 
-  const sentimentCounts = {
-    Positive: 0,
-    Neutral: 0,
-    Negative: 0
-  };
-
+  const sentimentCounts = {};
+  SENTIMENT_ORDER.forEach(label => sentimentCounts[label] = 0);
   history.forEach(item => {
-    if (item.sentiment) sentimentCounts[item.sentiment]++;
+    const label = normalizeSentiment(item.sentiment);
+    sentimentCounts[label] = (sentimentCounts[label] || 0) + 1;
   });
 
   const sentimentChartData = {
@@ -96,7 +94,7 @@ export default function Admin() {
     datasets: [
       {
         data: Object.values(sentimentCounts),
-        backgroundColor: ["#10b981", "#64748b", "#ef4444"],
+        backgroundColor: Object.keys(sentimentCounts).map(label => getSentimentVisual(label).color),
         borderWidth: 0
       }
     ]

@@ -42,7 +42,8 @@ export default function Account() {
     email: "",
     fullname: "",
     bio: "",
-    profile_pic: ""
+    profile_pic: "",
+    two_factor_enabled: false
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -79,7 +80,8 @@ export default function Account() {
           email: data.email || "",
           fullname: data.fullname || "",
           bio: data.bio || "",
-          profile_pic: data.profile_pic || ""
+          profile_pic: data.profile_pic || "",
+          two_factor_enabled: data.two_factor_enabled || false
         });
       } else {
         // If 404, we just initialize blank details
@@ -88,7 +90,8 @@ export default function Account() {
           email: userIdentifier || "",
           fullname: "",
           bio: "",
-          profile_pic: ""
+          profile_pic: "",
+          two_factor_enabled: false
         });
       }
     } catch (err) {
@@ -182,10 +185,96 @@ export default function Account() {
     setLoading(false);
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const [qrCode, setQrCode] = useState("");
+  const [twoFactorSecret, setTwoFactorSecret] = useState("");
+  const [otpVerify, setOtpVerify] = useState("");
+
+  const setup2FA = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`http://127.0.0.1:5000/api/2fa/setup/${encodeURIComponent(localStorage.getItem("user"))}`, {
+        method: "GET"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQrCode(data.qr_code);
+        setTwoFactorSecret(data.secret);
+      } else {
+        setError(data.error);
+      }
+    } catch (e) {
+      setError("Failed to setup 2FA");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verify2FA = async () => {
+    if (!otpVerify) {
+      setError("Please enter the 6-digit code.");
+      return;
+    }
+    try {
+       setLoading(true);
+       const res = await fetch("http://127.0.0.1:5000/api/2fa/verify", {
+         method: "POST",
+         headers: { 
+           "Content-Type": "application/json"
+         },
+         body: JSON.stringify({ otp: otpVerify, username: localStorage.getItem("user") })
+       });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage("Two-Factor Authentication successfully enabled!");
+        setQrCode("");
+      } else {
+        setError(data.error);
+      }
+    } catch (e) {
+      setError("Verification failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disable2FA = async () => {
+    try {
+       setLoading(true);
+       const res = await fetch("http://127.0.0.1:5000/api/2fa/disable", {
+         method: "POST",
+         headers: { 
+           "Content-Type": "application/json"
+         },
+         body: JSON.stringify({ username: localStorage.getItem("user") })
+       });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(data.message);
+        setDetails(prev => ({ ...prev, two_factor_enabled: false }));
+        setQrCode("");
+      } else {
+        setError(data.error);
+      }
+    } catch (e) {
+      setError("Failed to disable 2FA.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    supabase.auth.signOut().catch(e => console.warn("Supabase signout failed", e));
+    
+    // Hard loop to aggressively clear any Supabase session keys
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     localStorage.removeItem("user");
     localStorage.removeItem("access_token");
+    localStorage.removeItem("pending_oauth_user");
     window.location.href = "/";
   };
 
@@ -239,6 +328,7 @@ export default function Account() {
           <div className="account-tabs">
             <button className={activeTab === 'details' ? 'active' : ''} onClick={() => { setActiveTab('details'); setMessage(""); setError("");}}>Details</button>
             <button className={activeTab === 'password' ? 'active' : ''} onClick={() => { setActiveTab('password'); setMessage(""); setError("");}}>Password</button>
+            <button className={activeTab === 'security' ? 'active' : ''} onClick={() => { setActiveTab('security'); setMessage(""); setError("");}}>Security</button>
           </div>
 
           <div style={{ padding: '30px' }}>
@@ -317,6 +407,55 @@ export default function Account() {
                 <button className="btn-primary" onClick={changePwd} disabled={loading} style={{ marginTop: '10px' }}>
                   {loading ? "Updating..." : "Update Password"}
                 </button>
+              </div>
+            )}
+            {activeTab === 'security' && (
+              <div className="account-form">
+                <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '16px' }}>Two-Factor Authentication (2FA) adds an extra layer of security to your account.</p>
+                
+                {details.two_factor_enabled ? (
+                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <p style={{ color: '#10b981', fontWeight: 'bold', margin: '0 0 12px 0' }}>✅ 2FA is Currently Enabled</p>
+                    <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>Your account is protected. You will be asked for a verification code when signing in with your username and password.</p>
+                    <button className="btn-secondary" onClick={disable2FA} disabled={loading} style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)', width: 'fit-content' }}>
+                      {loading ? "Disabling..." : "Disable 2FA"}
+                    </button>
+                  </div>
+                ) : !qrCode ? (
+                  <button className="btn-primary" onClick={setup2FA} disabled={loading} style={{ width: 'fit-content', marginTop: '10px' }}>
+                    {loading ? "Setting up..." : "Enable 2FA"}
+                  </button>
+                ) : (
+                  <div style={{ marginTop: '16px', padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#e2e8f0', fontWeight: 'bold' }}>Scan this QR Code</p>
+                    <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>Use an authenticator app like Google Authenticator or Authy to scan the QR code below.</p>
+                    
+                    <div style={{ background: 'white', padding: '16px', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
+                      <img src={qrCode} alt="2FA QR Code" style={{ width: '200px', height: '200px' }} />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Secret Key (Manual Entry)</label>
+                      <input type="text" value={twoFactorSecret} disabled style={{ fontFamily: 'monospace', letterSpacing: '2px', textAlign: 'center' }} />
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '16px' }}>
+                      <label>Verification Code</label>
+                      <input 
+                        type="text" 
+                        value={otpVerify} 
+                        onChange={e => setOtpVerify(e.target.value)} 
+                        placeholder="Enter the 6-digit code" 
+                        maxLength={6}
+                        style={{ letterSpacing: '8px', textAlign: 'center', fontSize: '18px' }}
+                      />
+                    </div>
+
+                    <button className="btn-primary" onClick={verify2FA} disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
+                      {loading ? "Verifying..." : "Verify & Enable"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

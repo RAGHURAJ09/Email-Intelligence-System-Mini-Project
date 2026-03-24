@@ -65,6 +65,11 @@ with open("model.pkl", "rb") as f:
 with open("vectorizer.pkl", "rb") as f:
     vectorizer = pickle.load(f)
 
+import pyotp
+import base64
+from io import BytesIO
+import string
+
 # ------------------------
 # DATABASE MODELS
 # ------------------------
@@ -78,7 +83,8 @@ class User(db.Model):
     profile_pic = db.Column(db.Text, nullable=True)
     fullname = db.Column(db.String(150), nullable=True)
     bio = db.Column(db.Text, nullable=True)
-
+    two_factor_secret = db.Column(db.String(32), nullable=True)
+    two_factor_enabled = db.Column(db.Boolean, default=False)
 
 class EmailHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -238,21 +244,127 @@ def login():
         data = request.json
         username = data.get("username")
         password = data.get("password")
+        otp = data.get("otp")
+        is_oauth = data.get("is_oauth")
 
-        if not username or not password:
-            return jsonify({"error": "Missing username or password"}), 400
+        if not username:
+             return jsonify({"error": "Missing username"}), 400
 
         user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User.query.filter_by(email=username).first()
+            
+        if is_oauth and user and user.two_factor_enabled:
+            # Skip password check since OAuth verified it, just check OTP
+            totp = pyotp.TOTP(user.two_factor_secret)
+            if not totp.verify(otp):
+                return jsonify({"error": "Invalid 2FA code"}), 401
+            access_token = create_access_token(identity=user.username)
+            return jsonify({"message": "OAuth 2FA Login success", "access_token": access_token}), 200
+
+        if not password:
+            return jsonify({"error": "Missing password"}), 400
         
         # Check if user exists and password hash matches using bcrypt
         if user and bcrypt.check_password_hash(user.password, password):
-            access_token = create_access_token(identity=username)
+            if user.two_factor_enabled:
+                if not otp:
+                    return jsonify({"requires_2fa": True, "message": "2FA code required"}), 200
+                totp = pyotp.TOTP(user.two_factor_secret)
+                if not totp.verify(otp):
+                    return jsonify({"error": "Invalid 2FA code"}), 401
+
+            access_token = create_access_token(identity=user.username)
             return jsonify({"message": "Login success", "access_token": access_token}), 200
 
         return jsonify({"error": "Invalid credentials"}), 401
     except Exception as e:
         return jsonify({"error": f"Login failed: {str(e)}"}), 500
 
+@app.route("/api/2fa/setup/<username>", methods=["GET"])
+def setup_2fa(username):
+    try:
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User.query.filter_by(email=username).first()
+        if not user:
+            user = User(username=username, email=username, password="oauth_user_no_password")
+            db.session.add(user)
+            db.session.commit()
+        
+        if user.two_factor_enabled:
+            return jsonify({"error": "2FA is already enabled"}), 400
+
+        secret = pyotp.random_base32()
+        user.two_factor_secret = secret
+        db.session.commit()
+
+        totp = pyotp.TOTP(secret)
+        uri = totp.provisioning_uri(name=user.email or user.username, issuer_name="Customer Email AI")
+
+        # Generate QR code
+        import qrcode
+        qr = qrcode.make(uri)
+        buf = BytesIO()
+        qr.save(buf, format='PNG')
+        qr_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        return jsonify({
+            "secret": secret,
+            "qr_code": f"data:image/png;base64,{qr_b64}"
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/2fa/verify", methods=["POST"])
+def verify_2fa():
+    try:
+        data = request.json
+        otp = data.get("otp")
+        username = data.get("username")
+        
+        if not otp or not username:
+            return jsonify({"error": "Missing OTP code or username"}), 400
+        
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User.query.filter_by(email=username).first()
+            
+        if not user or not user.two_factor_secret:
+            return jsonify({"error": "2FA not initiated"}), 400
+
+        totp = pyotp.TOTP(user.two_factor_secret)
+        if totp.verify(otp):
+            user.two_factor_enabled = True
+            db.session.commit()
+            return jsonify({"message": "2FA successfully enabled!"}), 200
+        
+        return jsonify({"error": "Invalid OTP code"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/2fa/disable", methods=["POST"])
+def disable_2fa():
+    try:
+        data = request.json
+        username = data.get("username")
+        if not username:
+            return jsonify({"error": "Missing username"}), 400
+            
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User.query.filter_by(email=username).first()
+            
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        user.two_factor_enabled = False
+        user.two_factor_secret = None
+        db.session.commit()
+        
+        return jsonify({"message": "2FA has been disabled"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/forgot-password", methods=["POST"])
 def forgot_password():
@@ -462,7 +574,8 @@ def get_user_details(user_id):
             "email": user.email,
             "fullname": user.fullname,
             "bio": user.bio,
-            "profile_pic": user.profile_pic
+            "profile_pic": user.profile_pic,
+            "two_factor_enabled": user.two_factor_enabled
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -688,6 +801,8 @@ if __name__ == "__main__":
                     'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT',
                     'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS fullname VARCHAR(150)',
                     'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS bio TEXT',
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(32)',
+                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false',
                     'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()',
                     'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS user_feedback VARCHAR(20)',
                     'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT false',

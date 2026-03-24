@@ -20,9 +20,29 @@ import { supabase } from "./utils/supabase";
 
 export default function App() {
   React.useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        localStorage.setItem('user', session.user.email);
+        const email = session.user.email;
+        // Check if user has 2FA enabled
+        try {
+          const res = await fetch(`http://127.0.0.1:5000/api/user/details/${encodeURIComponent(email)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.two_factor_enabled) {
+              // Intercept the login! Hold the session.
+              localStorage.setItem('pending_oauth_user', email);
+              // Force local logout to prevent bypassing 2FA
+              await supabase.auth.signOut();
+              window.location.href = '/login?oauth_2fa=true';
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to check 2FA status during OAuth", e);
+        }
+
+        // Standard login bypass if 2FA disabled
+        localStorage.setItem('user', email);
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('user');
       }

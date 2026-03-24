@@ -41,8 +41,8 @@ const NeuralBackground = () => {
         const ctx = canvas.getContext('2d');
         let animationFrameId;
         let particles = [];
-        const particleCount = 200; // Increased for a denser cloud
-        const connectionDistance = 120;
+        const particleCount = 500; // Significantly increased for a dense, vibrant cloud
+        const connectionDistance = 140; // Slightly increased for more neural links
         const focalLength = 400;
         const maxDepth = 1500;
 
@@ -82,8 +82,7 @@ const NeuralBackground = () => {
 
             update() {
                 const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-                const speedMult = isLight ? 0.15 : 1.0; // Ultra gentle slow motion for Light Mode
-
+                const speedMult = (isLight ? 0.15 : 1.0) * 0.5; // global speed by 50%
                 this.x += this.vx * speedMult;
                 this.y += this.vy * speedMult;
                 this.z -= this.vz * speedMult;

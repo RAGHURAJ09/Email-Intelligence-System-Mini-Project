@@ -9,10 +9,19 @@ export default function Navbar() {
   const [profilePic, setProfilePic] = useState(null);
   const [themeMode, setThemeMode] = useState(localStorage.getItem('theme-preference') || 'system');
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
+    supabase.auth.signOut().catch(e => console.warn("Supabase signout failed", e));
+    
+    // Hard loop to aggressively clear any Supabase session keys
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     localStorage.removeItem("user");
     localStorage.removeItem("access_token");
+    localStorage.removeItem("pending_oauth_user");
     window.location.href = "/";
   };
 
