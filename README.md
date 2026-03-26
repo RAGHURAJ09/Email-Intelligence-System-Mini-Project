@@ -19,12 +19,14 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 * **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Technical Support, Query) reducing manual sorting time.
 * **😡 Sentiment Analysis:** Detects the emotional tone of the email (Positive, Negative, Neutral) to gauge customer satisfaction instantly.
-* **🚨 Priority & Spam Flagging:** Automatically tags emails as High, Medium, or Low urgency. Includes an independent AI layer to aggressively filter out promotional spam or phishing.
-* **🔒 Secure Authentication & 2FA:** Features a robust JWT (JSON Web Token) based local authentication system with `bcrypt` password hashing, Google OAuth, and optional TOTP-based Two-Factor Authentication (2FA).
-* **🛡️ Bulletproof Error Logging:** Comprehensive global exception handling records exact back-end stack traces securely to `backend.log` using a rotating file handler while delivering clean JSON payloads.
+* **🚨 Priority & Spam Flagging:** Dual-layer AI/Heuristic system to tag emails (High, Medium, Low) and aggressively filter out promotional spam or phishing.
+* **🔒 Professional Security:** Robust JWT-based authentication with `bcrypt` hashing, Google OAuth 2.0 integration, and TOTP-based Two-Factor Authentication (2FA).
+* **🛡️ Security Hardening:** Implemented `flask-limiter` for granular rate-limiting and identity verification checks to prevent unauthorized data access between users.
+* **👍 Feedback Loop:** Integrated User Feedback system (Helpful/Not Helpful) to record model accuracy and identify areas for NLP refinement.
 * **📊 Historical Auditing UI:** A fully dedicated spreadsheet-style audit page to search, filter, sort, and export chronological inferences into CSV reports.
-* **🤖 AI Contextual Replies:** Connects to generative APIs to automatically draft context-aware support responses based on the email's intent and sentiment markers.
-* **🎨 Modern UI/UX:** A highly responsive user interface built with React, featuring Aurora gradients, frosted glass aesthetics, and fluid Framer Motion animations.
+* **👤 User Profile Management:** Customizable accounts allowing users to manage profile pictures (Base64), bios, and synchronized identity across auth providers.
+* **🤖 AI Contextual Replies:** Generative logic to draft context-aware support responses based on predicted intent and sentiment markers.
+* **🎨 Modern UI/UX:** A premium React interface featuring Aurora gradients, frosted glass aesthetics, and fluid Framer Motion animations.
 
 ---
 
@@ -38,14 +40,14 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 **Backend API:**
 * **Framework:** Python 3 Flask
-* **Cross-Origin:** Flask-CORS
+* **Middleware:** Flask-CORS, Flask-Limiter (Rate Limiting)
 * **Machine Learning:** Scikit-Learn, NLTK
 * **Serialization:** Pickle
 
 **Database & Security:**
 * **RDBMS:** PostgreSQL (Hosted on Supabase)
 * **ORM:** Flask-SQLAlchemy
-* **Security & Auth:** Flask-JWT-Extended (Tokens), Flask-Bcrypt (Hashing)
+* **Security & Auth:** Flask-JWT-Extended, Flask-Bcrypt, pyotp, qrcode
 * **3rd Party Auth:** Supabase (Google Sign-In)
 
 ---
@@ -55,10 +57,12 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 This project utilizes a custom-trained **Logistic Regression** pipeline, selected for its highly efficient text classification speeds:
 
 1. **Preprocessing (NLTK):** User text is lowercased, stripped of punctuation, and purged of common stop words.
-2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words (e.g., "broken", "refund") and assign numerical value.
-3. **Multi-Model Prediction:** The vector is fed simultaneously into four distinct `.pkl` models to individually predict **Spam**, **Intent**, **Sentiment**, and **Priority**. 
-4. **Model Evaluation:** The AI relies on a strict 80/20 train-test split pattern to evaluate unseen data, grading algorithms on **Accuracy (~0.96)**, **Precision (~0.95)**, **Recall (~0.96)**, and the **F1 Score (~0.96)** to ensure the model generalizes well to new, real-world customer inquiries.
-5. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is extremely low (<40%), it safely defaults to 'Query' | 'Neutral' | 'Low' to prevent hallucination fallbacks.
+2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words.
+3. **Dual-Layer Prediction:** 
+   - **ML Layer:** Vector is fed into four distinct `.pkl` models to individually predict **Spam**, **Intent**, **Sentiment**, and **Priority**.
+   - **Heuristic Layer:** A keyword-based fallback system captures high-priority triggers even if model confidence is low.
+4. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is low (<55%), it utilizes heuristic overrides to prevent categorization hallucinations.
+5. **Model Evaluation:** Achieving average performance of **~96% Accuracy** and **~95% Precision** on test datasets, ensuring robust real-world reliability.
 
 ---
 

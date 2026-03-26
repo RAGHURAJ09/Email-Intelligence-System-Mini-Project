@@ -55,17 +55,17 @@ export default function Documentation() {
                             <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.6', color: 'var(--text-muted)' }}>
                                 <li>Python 3.x</li>
                                 <li>Flask (REST API)</li>
-                                <li>Flask-CORS</li>
+                                <li>Flask-CORS & Flask-Limiter</li>
                                 <li>Pickle (Model serialization)</li>
                             </ul>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <h3 style={{ color: '#a855f7', marginBottom: '10px' }}>Database & Auth</h3>
                             <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.6', color: 'var(--text-muted)' }}>
-                                <li>PostgreSQL (Hosted on Supabase)</li>
-                                <li>Supabase Auth (Google OAuth 2.0)</li>
+                                <li>PostgreSQL (Supabase)</li>
+                                <li>JWT & Google OAuth 2.0</li>
+                                <li>2FA (pyotp & qrcode)</li>
                                 <li>Flask-SQLAlchemy (ORM)</li>
-                                <li>Flask-JWT-Extended (Tokens)</li>
                             </ul>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -89,8 +89,9 @@ export default function Documentation() {
                         <li style={{ marginBottom: '10px' }}><strong>User Input:</strong> The support agent or admin pastes the customer email into the React frontend interface.</li>
                         <li style={{ marginBottom: '10px' }}><strong>API Request:</strong> The frontend makes an asynchronous HTTP POST request to the Flask backend's <code>/api/analyze</code> endpoint with the email text payload.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Preprocessing:</strong> The backend receives the text and passes it to the loaded TF-IDF Vectorizer, which converts the raw text into numerical feature vectors.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Prediction Layer:</strong> The vectorized text is fed into three parallel pre-trained ML models (loaded via pickle) to independently predict Intent, Sentiment, and Priority.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Data Persistence:</strong> If the user is logged in, the email and its corresponding analysis results are saved directly to the cloud Supabase PostgreSQL database using SQLAlchemy.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Prediction Layer:</strong> The vectorized text is fed into parallel pre-trained ML models and a heuristic override layer to independently predict Intent, Sentiment, Priority, and Spam.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Security Verification:</strong> The backend verifies JWT identity and applies rate-limiting before proceeding with database operations.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Data Persistence:</strong> The email, its analysis, and future user feedback are saved to the Supabase PostgreSQL database.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Response Generation:</strong> A rule-based engine constructs a draft reply based on the predicted intent and sentiment.</li>
                         <li style={{ marginBottom: '10px' }}><strong>UI Update:</strong> The Flask API responds with a JSON object containing the predictions and draft response. The React frontend updates the UI using Framer Motion animations to present the actionable insights to the user.</li>
                     </ol>
@@ -120,7 +121,8 @@ export default function Documentation() {
                                 <li><strong>F1 Score (~0.9604):</strong> A harmonized average of both Precision and Recall.</li>
                             </ul>
                         </li>
-                        <li style={{ marginBottom: '10px' }}><strong>Confidence Thresholding:</strong> To prevent the AI from making wild guesses on unfamiliar text, I implemented a safety check using <code>predict_proba</code>. If the highest probability score is below 40%, the system safely defaults to a "Query" / "Low Priority" categorization.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Confidence Thresholding & Heuristics:</strong> To prevent hallucinations, the system uses <code>predict_proba</code>. If confidence is below 55%, it defaults to heuristic triggers (e.g., checking for terms like 'refund' or 'urgent') to ensure accuracy.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>User Feedback Loop:</strong> Users can provide 'Helpful' or 'Not Helpful' feedback on results, which is stored to improve future model versions.</li>
                     </ul>
                 </section>
 
@@ -149,8 +151,9 @@ export default function Documentation() {
                     <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
                         <li style={{ marginBottom: '10px' }}><strong>Historical Auditing Dashboard:</strong> A dedicated, dynamic spreadsheet-style UI to filter, search, sort, and export thousands of past email inferences into CSV.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Bulletproof Error Logging:</strong> Global exception handlers in the backend catch 500 errors gracefully, logging the full stack trace securely into rotating `backend.log` files while returning user-friendly JSON payloads to the frontend.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Two-Factor Authentication (2FA):</strong> Integrating `pyotp` and QR codes to securely wrap OAuth and Native logins with an additional layer of security.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>AI Drafted Contextual Responses:</strong> Automatically generating structured, personalized draft replies based on intent, sentiment, and priority signals via API.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Two-Factor Authentication (2FA):</strong> Integrating `pyotp` and QR codes to provide an optional hardware-level security layer for all accounts.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Profile & Identity Management:</strong> Comprehensive user profiles allowing for custom avatars, bios, and synchronized Google/Local identity management.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>API Rate Limiting:</strong> Implementation of `flask-limiter` to protect ML endpoints from brute-force attacks and resource exhaustion.</li>
                     </ul>
                 </section>
 
@@ -171,13 +174,13 @@ export default function Documentation() {
                             <tbody>
                                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                     <td style={{ padding: '10px', fontWeight: 'bold' }}>User</td>
-                                    <td style={{ padding: '10px' }}>id (Primary Key), username, password <strong>(Hashed)</strong></td>
-                                    <td style={{ padding: '10px' }}>Stores user credentials for local authentication natively. Passwords are securely hashed using `bcrypt`. <em>Alternatively, users authenticate via <strong>Google Sign-In</strong> handled entirely off-chain by Supabase Auth (OAuth 2.0).</em></td>
+                                    <td style={{ padding: '10px' }}>id, username, email, password <strong>(Hashed)</strong>, profile_pic, bio, 2fa_enabled</td>
+                                    <td style={{ padding: '10px' }}>Stores credentials, profile metadata, and security settings. Supports both local and Google OAuth users.</td>
                                 </tr>
                                 <tr>
                                     <td style={{ padding: '10px', fontWeight: 'bold' }}>EmailHistory</td>
-                                    <td style={{ padding: '10px' }}>id, user_id, email_text, intent, priority, sentiment</td>
-                                    <td style={{ padding: '10px' }}>Stores the history of analyzed emails for a logged-in user.</td>
+                                    <td style={{ padding: '10px' }}>id, user, email_text, intent, priority, sentiment, is_spam, user_feedback</td>
+                                    <td style={{ padding: '10px' }}>Stores analysis results and user-provided accuracy feedback for auditing.</td>
                                 </tr>
                             </tbody>
                         </table>
