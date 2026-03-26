@@ -24,28 +24,41 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         const email = session.user.email;
-        // Check if user has 2FA enabled
+        // Check if user has 2FA enabled or if we just need to get a JWT
         try {
-          const res = await fetch(`http://127.0.0.1:5000/api/user/details/${encodeURIComponent(email)}`);
+          // If we already have a token and it's for this user, skip
+          const currentToken = localStorage.getItem('access_token');
+          const currentUser = localStorage.getItem('user');
+          if (currentToken && currentUser === email) return;
+
+          const res = await fetch(`http://127.0.0.1:5000/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: email, is_oauth: true })
+          });
+          
           if (res.ok) {
             const data = await res.json();
-            if (data.two_factor_enabled) {
+            if (data.requires_2fa) {
               // Intercept the login! Hold the session.
               localStorage.setItem('pending_oauth_user', email);
-              // Force local logout to prevent bypassing 2FA
+              // Force local logout to prevent bypassing 2FA until verified by Flask
               await supabase.auth.signOut();
               window.location.href = '/login?oauth_2fa=true';
               return;
+            } else if (data.access_token) {
+              localStorage.setItem('access_token', data.access_token);
+              localStorage.setItem('user', email);
+              // Optional: reload if needed to update UI context
+              // window.location.reload(); 
             }
           }
         } catch (e) {
-          console.error("Failed to check 2FA status during OAuth", e);
+          console.error("Failed to sync session with backend during OAuth", e);
         }
-
-        // Standard login bypass if 2FA disabled
-        localStorage.setItem('user', email);
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('user');
+        localStorage.removeItem('access_token');
       }
     });
 

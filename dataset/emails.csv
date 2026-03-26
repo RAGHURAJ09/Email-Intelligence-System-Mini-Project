@@ -1000,3 +1000,4 @@ My account is locked.,query,Negative,High,Urgent,tech
 I want to talk to a manager.,complaint,Negative,High,Urgent,support
 Refund me immediately.,refund,Negative,High,Urgent,billing
 I am extremely disappointed with my recent purchase. The product arrived broken and the packaging was damaged. I have been a loyal customer for 5 years and this is unacceptable. I want a full refund immediately or I will escalate this to consumer court.,refund,Very negative,High,Urgent,support
+I am extremely disappointed with my recent purchase. The product arrived broken and the packaging was damaged. I have been a loyal customer for 5 years and this is unacceptable. I want a full refund immediately or I will escalate this to consumer court.,refund,Negative,High,Urgent,support

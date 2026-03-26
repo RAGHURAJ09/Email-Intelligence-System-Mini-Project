@@ -244,16 +244,21 @@ def analyze_email(text):
     # 1. Predict Intent with Confidence Check
     probs = intent_model.predict_proba(vec)[0]
     max_prob = max(probs)
-    
+    text_lower = text.lower()
+
+    # ── Override: If explicit 'refund' or 'money back' is mentioned, prioritize Refund intent ──
+    if any(word in text_lower for word in ['refund', 'money back', 'reimbursement', 'repay', 'full refund']):
+        return "Refund", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
+
     if max_prob < 0.55:
         # Smart Uncertainty fallback based on keyword heuristics
-        text_lower = text.lower()
-        if any(word in text_lower for word in ['fraud', 'scam', 'legal', 'lawyer', 'attorney', 'sue', 'police', 'report', 'unauthorized', 'stolen']):
+        # Reordered: Prioritize Refund and Escalation over general Issues
+        if any(word in text_lower for word in ['refund', 'charged', 'money', 'cancel', 'angry', 'stolen', 'missing']):
+            return "Refund", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
+        elif any(word in text_lower for word in ['fraud', 'scam', 'legal', 'lawyer', 'attorney', 'sue', 'police', 'report', 'unauthorized', 'stolen']):
             return "Escalation", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
         elif any(word in text_lower for word in ['explode', 'burn', 'fire', 'danger', 'injury', 'broken', 'shattered', 'bleeding', 'hospital', 'hazard', 'toxic']):
-             return "Issue", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
-        elif any(word in text_lower for word in ['refund', 'charged', 'money', 'cancel', 'angry', 'stolen', 'missing']):
-             return "Refund", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
+            return "Issue", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
         else:
             return "Query", "Low", "Neutral", round(max_prob * 100, 2), is_spam_pred
 
@@ -338,24 +343,34 @@ def login():
         # ── Input Validation ──
         if not username:
             return jsonify({"error": "Missing username"}), 400
-        if len(username) > 120:
-            return jsonify({"error": "Username too long"}), 400
 
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User.query.filter_by(email=username).first()
+        user = User.query.filter((User.username == username) | (User.email == username)).first()
 
-        if is_oauth and user and user.two_factor_enabled:
-            totp = pyotp.TOTP(user.two_factor_secret)
-            if not otp or not totp.verify(str(otp)):
-                return jsonify({"error": "Invalid 2FA code"}), 401
+        # Handle OAuth login (where identity is already verified by Supabase)
+        if is_oauth:
+            if not user:
+                # Auto-create user for first-time Google logins
+                random_pw = bcrypt.generate_password_hash(secrets.token_hex(16)).decode('utf-8')
+                user = User(username=username, email=username, password=random_pw)
+                db.session.add(user)
+                db.session.commit()
+            
+            if user.two_factor_enabled:
+                if not otp:
+                    return jsonify({"requires_2fa": True, "message": "2FA code required for OAuth"}), 200
+                totp = pyotp.TOTP(user.two_factor_secret)
+                if not totp.verify(str(otp)):
+                    return jsonify({"error": "Invalid 2FA code"}), 401
+            
+            # Successful OAuth authorization on Flask side
             access_token = create_access_token(identity=user.username)
-            return jsonify({"message": "OAuth 2FA Login success", "access_token": access_token}), 200
+            return jsonify({"message": "OAuth Login success", "access_token": access_token}), 200
 
+        # Normal Password login
         if not password:
             return jsonify({"error": "Missing password"}), 400
 
-        if user and bcrypt.check_password_hash(user.password, password):
+        if user and user.password != "oauth_user_no_password" and bcrypt.check_password_hash(user.password, password):
             if user.two_factor_enabled:
                 if not otp:
                     return jsonify({"requires_2fa": True, "message": "2FA code required"}), 200
@@ -368,7 +383,7 @@ def login():
 
         return jsonify({"error": "Invalid credentials"}), 401
     except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        app.logger.error(f"Unhandled exception in /api/login: {str(e)}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/2fa/setup/<username>", methods=["GET"])

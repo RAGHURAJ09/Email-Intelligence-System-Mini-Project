@@ -59,30 +59,48 @@ export default function Home() {
 
     try {
       // user is now extracted server-side from JWT — no need to pass it
-      const data = await analyzeEmail(email);
-      setResult(data);
-      if (data.record_id) setRecordId(data.record_id);
-      // Play smart real-time audio feedback based on analysis logic
-      if (data && data.priority === 'High') {
-        playSound('high-priority');
-      } else if (data && data.sentiment) {
-        const tone = sentimentTone(data.sentiment);
-        playSound(tone === 'mixed' ? 'neutral' : tone);
-        setBgState(normalizeSentiment(data.sentiment));
-      }
-      // Show custom notification
-      setNotification("✅ Analysis Complete!");
-      setTimeout(() => setNotification(""), 1500);
+      const response = await analyzeEmail(email);
+      
+      // Check if the response is actually a successful analysis or an error
+      if (response && (response.intent || response.priority)) {
+        setResult(response);
+        if (response.record_id) setRecordId(response.record_id);
+        
+        // Play smart real-time audio feedback based on analysis logic
+        if (response.priority === 'High') {
+          playSound('high-priority');
+        } else if (response.sentiment) {
+          const tone = sentimentTone(response.sentiment);
+          playSound(tone === 'mixed' ? 'neutral' : tone);
+          setBgState(normalizeSentiment(response.sentiment));
+        }
+        
+        setNotification("✅ Analysis Complete!");
+        setTimeout(() => setNotification(""), 1500);
 
-      // Scroll to result slightly
-      setTimeout(() => {
-        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
+        // Scroll to result slightly
+        setTimeout(() => {
+          resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      } else {
+        // Handle backend error messages (e.g. 401 Unauthorized)
+        // Check multiple possible error fields (error, message, msg)
+        const errorMsg = response?.error || response?.message || response?.msg || "Analysis Failed";
+        console.error("API Error Response:", response);
+        playSound('error');
+        
+        if (response?.error === "Unauthorized" || response?.msg?.includes("Authorization") || !localStorage.getItem('access_token')) {
+          setNotification("🔒 Please login to analyze emails.");
+        } else {
+          setNotification(`❌ ${errorMsg}`);
+        }
+        setTimeout(() => setNotification(""), 3500);
+      }
     } catch (error) {
-      console.error("Analysis failed:", error);
+      console.error("Fetch Exception:", error);
       playSound('error');
-      setNotification("❌ Analysis Failed. Please try again.");
-      setTimeout(() => setNotification(""), 2000);
+      setNotification("❌ Connection error. Please check your internet.");
+      setTimeout(() => setNotification(""), 3500);
     } finally {
       setLoading(false);
     }
@@ -205,14 +223,18 @@ export default function Home() {
             />
 
             <div className="btn-group">
-              <button
-                onClick={submit}
-                className="btn-primary"
-                disabled={loading || !email}
-                style={{ opacity: loading || !email ? 0.6 : 1 }}
-              >
-                {loading ? "Analyzing..." : "Run Analysis"}
-              </button>
+                <button
+                  onClick={submit}
+                  className="btn-primary"
+                  disabled={loading || !email}
+                  style={{ 
+                    opacity: loading || !email ? 0.6 : 1,
+                    background: !user ? 'rgba(128, 128, 128, 0.2)' : undefined,
+                    cursor: !user ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!user ? "🔒 Login Required" : (loading ? "Analyzing..." : "Run Analysis")}
+                </button>
               <button
                 onClick={reset}
                 className="btn-secondary"
@@ -254,10 +276,10 @@ export default function Home() {
                   <div className="result-row">
                     <span className="result-key">Priority Level</span>
                     <span
-                      className={`activity-badge priority-${result.priority.toLowerCase()}`}
+                      className={`activity-badge priority-${(result.priority || "low").toLowerCase()}`}
                       style={{ fontSize: '14px', padding: '4px 12px' }}
                     >
-                      {result.priority}
+                      {result.priority || "Low"}
                     </span>
                   </div>
 
