@@ -13,10 +13,7 @@ export default function Dashboard() {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [generatedResponse, setGeneratedResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterPriority, setFilterPriority] = useState("All");
-  const [filterIntent, setFilterIntent] = useState("All");
-  const [filterSpam, setFilterSpam] = useState("All"); // 'All' | 'Spam' | 'Not Spam'
+  const [filterSpam, setFilterSpam] = useState("All");
   const user = localStorage.getItem("user");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -100,14 +97,7 @@ export default function Dashboard() {
     return acc;
   }, {});
 
-  const filteredHistory = history.filter(item => {
-    const matchesSearch = item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.intent.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = filterPriority === "All" || item.priority === filterPriority;
-    const matchesIntent = filterIntent === "All" || item.intent.toLowerCase() === filterIntent.toLowerCase();
-    const matchesSpam = filterSpam === "All" || (filterSpam === "Spam" ? item.is_spam : !item.is_spam);
-    return matchesSearch && matchesPriority && matchesIntent && matchesSpam;
-  });
+  const filteredHistory = history.slice(0, 7); // Show max 7 recent items natively
 
   const doughnutData = {
     labels: Object.keys(intentCounts),
@@ -212,64 +202,12 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'nowrap', gap: '16px' }}>
             <h3 style={{ margin: 0, color: '#f8fafc', whiteSpace: 'nowrap' }}>Recent Activity</h3>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'nowrap', flex: 1, justifyContent: 'flex-end', overflowX: 'auto', paddingBottom: '4px' }}>
-              <input
-                type="text"
-                placeholder="Search emails..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none',
-                  minWidth: '150px'
-                }}
-              />
-              <select
-                value={filterPriority}
-                onChange={(e) => setFilterPriority(e.target.value)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none', cursor: 'pointer'
-                }}
-              >
-                <option value="All" style={{ background: '#1e293b' }}>All Priorities</option>
-                <option value="High" style={{ background: '#1e293b' }}>High Priority</option>
-                <option value="Medium" style={{ background: '#1e293b' }}>Medium Priority</option>
-                <option value="Low" style={{ background: '#1e293b' }}>Low Priority</option>
-              </select>
-              <select
-                value={filterIntent}
-                onChange={(e) => setFilterIntent(e.target.value)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none', cursor: 'pointer'
-                }}
-              >
-                <option value="All" style={{ background: '#1e293b' }}>All Intents</option>
-                <option value="refund" style={{ background: '#1e293b' }}>Refund</option>
-                <option value="query" style={{ background: '#1e293b' }}>Query</option>
-                <option value="issue" style={{ background: '#1e293b' }}>Issue</option>
-                <option value="feedback" style={{ background: '#1e293b' }}>Feedback</option>
-                <option value="escalation" style={{ background: '#1e293b' }}>Escalation</option>
-              </select>
-              <select
-                value={filterSpam}
-                onChange={(e) => setFilterSpam(e.target.value)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px', padding: '6px 12px', color: '#f8fafc', fontSize: '13px', outline: 'none', cursor: 'pointer'
-                }}
-              >
-                <option value="All" style={{ background: '#1e293b' }}>All Types</option>
-                <option value="Spam" style={{ background: '#1e293b' }}>🚨 Spam Only</option>
-                <option value="Not Spam" style={{ background: '#1e293b' }}>✅ Not Spam</option>
-              </select>
               <a
-                href={`${API}/export/${encodeURIComponent(user)}`}
-                download
-                className="btn-secondary"
-                style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                href="/history"
+                className="btn-primary"
+                style={{ textDecoration: 'none', padding: '6px 20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <span>📥</span> Export CSV
+                <span>📜</span> Full Historical Audit →
               </a>
             </div>
           </div>

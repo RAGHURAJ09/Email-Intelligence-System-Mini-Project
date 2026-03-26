@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import pickle
 import os
 from dotenv import load_dotenv
@@ -24,8 +26,79 @@ app = Flask(
     static_url_path="/"
 )
 
-CORS(app)
+# -------------------------
+# CORS CONFIGURATION
+# Restrict to known frontend origins only
+# -------------------------
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",   # Vite dev server
+    "http://localhost:3000",   # Alt dev server
+    "http://127.0.0.1:5000",  # Flask prod server
+]
+CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
+
 bcrypt = Bcrypt(app)
+
+# -------------------------
+# RATE LIMITING
+# Global default: 200/day, 50/hour. Stricter limits applied per-route.
+# -------------------------
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+# -------------------------
+# LOGGING & ERROR HANDLING
+# -------------------------
+import logging
+from logging.handlers import RotatingFileHandler
+import traceback
+from werkzeug.exceptions import HTTPException
+
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+file_handler = RotatingFileHandler('logs/backend.log', maxBytes=1048576, backupCount=10)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s [in %(pathname)s:%(lineno)d]'
+))
+app.logger.addHandler(file_handler)
+app.logger.setLevel(logging.INFO)
+
+@app.errorhandler(400)
+def bad_request(error):
+    app.logger.warning(f"Bad Request: {error.description}")
+    return jsonify({"error": "Bad Request", "message": error.description or "The request was invalid."}), 400
+
+@app.errorhandler(401)
+def unauthorized(error):
+    app.logger.warning("Unauthorized access attempt")
+    return jsonify({"error": "Unauthorized", "message": "Authentication is required to access this resource."}), 401
+
+@app.errorhandler(403)
+def forbidden(error):
+    app.logger.warning("Forbidden access attempt")
+    return jsonify({"error": "Forbidden", "message": "You don't have permission to access this resource."}), 403
+
+@app.errorhandler(404)
+def not_found(error):
+    if request.path.startswith('/api/'):
+        app.logger.warning(f"Not Found: {request.path}")
+        return jsonify({"error": "Not Found", "message": "The requested resource could not be found."}), 404
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return e
+    app.logger.error(f"Unhandled Exception: {str(e)}\n{traceback.format_exc()}")
+    return jsonify({
+        "error": "Internal Server Error",
+        "message": "An unexpected error occurred. Please try again later."
+    }), 500
+
 
 # -------------------------
 # JWT CONFIGURATION
@@ -207,71 +280,87 @@ def analyze_email(text):
 # AUTH ROUTES
 # -------------------------
 @app.route("/api/signup", methods=["POST"])
+@limiter.limit("10 per hour")  # Prevent mass account creation
 def signup():
     """Register a new user with hashed password."""
     try:
-        data = request.json
-        username = data.get("username")
-        password = data.get("password")
-        email = data.get("email")
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
 
+        data = request.json
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
+        email = data.get("email", "").strip()
+
+        # ── Input Validation ──
         if not username or not password or not email:
-            return jsonify({"error": "Missing required fields"}), 400
+            return jsonify({"error": "Missing required fields: username, password, email"}), 400
+        if len(username) < 3 or len(username) > 50:
+            return jsonify({"error": "Username must be between 3 and 50 characters"}), 400
+        if len(password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
+        if len(email) > 254 or "@" not in email:
+            return jsonify({"error": "Invalid email address"}), 400
 
         existing = User.query.filter_by(username=username).first()
         if existing:
             return jsonify({"error": "User already exists"}), 400
+        if User.query.filter_by(email=email).first():
+            return jsonify({"error": "Email is already registered"}), 400
 
-        # Hash the password for security using bcrypt
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-
         new_user = User(username=username, password=hashed_password, email=email)
         db.session.add(new_user)
         db.session.commit()
 
-        # Automatically log in the user after signup by issuing a token
         access_token = create_access_token(identity=username)
         return jsonify({"message": "Signup successful", "access_token": access_token}), 201
 
     except Exception as e:
-        return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 
 @app.route("/api/login", methods=["POST"])
+@limiter.limit("20 per hour")  # Prevent brute-force attacks
 def login():
     """Authenticate existing user and issue JWT."""
     try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
         data = request.json
-        username = data.get("username")
-        password = data.get("password")
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
         otp = data.get("otp")
         is_oauth = data.get("is_oauth")
 
+        # ── Input Validation ──
         if not username:
-             return jsonify({"error": "Missing username"}), 400
+            return jsonify({"error": "Missing username"}), 400
+        if len(username) > 120:
+            return jsonify({"error": "Username too long"}), 400
 
         user = User.query.filter_by(username=username).first()
         if not user:
             user = User.query.filter_by(email=username).first()
-            
+
         if is_oauth and user and user.two_factor_enabled:
-            # Skip password check since OAuth verified it, just check OTP
             totp = pyotp.TOTP(user.two_factor_secret)
-            if not totp.verify(otp):
+            if not otp or not totp.verify(str(otp)):
                 return jsonify({"error": "Invalid 2FA code"}), 401
             access_token = create_access_token(identity=user.username)
             return jsonify({"message": "OAuth 2FA Login success", "access_token": access_token}), 200
 
         if not password:
             return jsonify({"error": "Missing password"}), 400
-        
-        # Check if user exists and password hash matches using bcrypt
+
         if user and bcrypt.check_password_hash(user.password, password):
             if user.two_factor_enabled:
                 if not otp:
                     return jsonify({"requires_2fa": True, "message": "2FA code required"}), 200
                 totp = pyotp.TOTP(user.two_factor_secret)
-                if not totp.verify(otp):
+                if not totp.verify(str(otp)):
                     return jsonify({"error": "Invalid 2FA code"}), 401
 
             access_token = create_access_token(identity=user.username)
@@ -279,7 +368,8 @@ def login():
 
         return jsonify({"error": "Invalid credentials"}), 401
     except Exception as e:
-        return jsonify({"error": f"Login failed: {str(e)}"}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/2fa/setup/<username>", methods=["GET"])
 def setup_2fa(username):
@@ -314,22 +404,28 @@ def setup_2fa(username):
             "qr_code": f"data:image/png;base64,{qr_b64}"
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/2fa/verify", methods=["POST"])
+@limiter.limit("10 per hour")  # Prevent OTP brute-force
 def verify_2fa():
     try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
         data = request.json
-        otp = data.get("otp")
-        username = data.get("username")
-        
+        otp = str(data.get("otp", "")).strip()
+        username = data.get("username", "").strip()
+
+        # ── Input Validation ──
         if not otp or not username:
             return jsonify({"error": "Missing OTP code or username"}), 400
-        
+        if not otp.isdigit() or len(otp) != 6:
+            return jsonify({"error": "OTP must be a 6-digit number"}), 400
+
         user = User.query.filter_by(username=username).first()
         if not user:
             user = User.query.filter_by(email=username).first()
-            
         if not user or not user.two_factor_secret:
             return jsonify({"error": "2FA not initiated"}), 400
 
@@ -338,10 +434,11 @@ def verify_2fa():
             user.two_factor_enabled = True
             db.session.commit()
             return jsonify({"message": "2FA successfully enabled!"}), 200
-        
+
         return jsonify({"error": "Invalid OTP code"}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/2fa/disable", methods=["POST"])
 def disable_2fa():
@@ -364,16 +461,23 @@ def disable_2fa():
         
         return jsonify({"message": "2FA has been disabled"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/forgot-password", methods=["POST"])
+@limiter.limit("5 per hour")  # Prevent email flooding
 def forgot_password():
     """Generate a reset token and send an email."""
     try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
         data = request.json
-        email = data.get("email")
+        email = data.get("email", "").strip()
+        # ── Input Validation ──
         if not email:
             return jsonify({"error": "Email is required"}), 400
+        if len(email) > 254 or "@" not in email:
+            return jsonify({"error": "Invalid email address"}), 400
 
         user = User.query.filter_by(email=email).first()
         if user:
@@ -397,14 +501,15 @@ def forgot_password():
                 masked_email = f"{masked}@{domain}"
                 return jsonify({"message": f"Reset link sent to {masked_email}. Check your inbox and spam folder.", "masked_email": masked_email}), 200
             except Exception as mail_err:
-                print(f"Mail delivery failed: {mail_err}")
+                app.logger.error(f"Mail delivery failed: {mail_err}", exc_info=True)
                 return jsonify({"error": "Failed to send email. Please check server SMTP configuration."}), 500
 
         # No local account found — could be a Google OAuth user
         return jsonify({"message": "No local account found with that email.", "user_found": False}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 
 @app.route("/api/reset-password", methods=["POST"])
@@ -432,25 +537,36 @@ def reset_password():
         return jsonify({"message": "Password updated successfully"}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 
 # -------------------------
 # EMAIL ANALYSIS
 # -------------------------
 @app.route("/api/analyze", methods=["POST"])
+@jwt_required()  # ── Authorization: must be logged in to analyze
+@limiter.limit("30 per hour")  # Prevent ML model abuse
 def analyze():
     """Analyze email content for intent, priority, sentiment, and spam status."""
     try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
         data = request.json
         if not data or not data.get("email"):
-             return jsonify({"error": "Email content is required"}), 400
-             
-        email = data.get("email")
-        # Handle user from JWT or guest gracefully if security dictates
-        # Normally would use jwt_optional but we keep it backward compatible: 
-        # Check if they provide user string (or extract from token if we strictly enforce it)
-        user = data.get("user")  
+            return jsonify({"error": "Email content is required"}), 400
+
+        email = data.get("email", "").strip()
+
+        # ── Input Validation ──
+        if len(email) < 10:
+            return jsonify({"error": "Email content is too short (min 10 characters)"}), 400
+        if len(email) > 10000:
+            return jsonify({"error": "Email content is too long (max 10,000 characters)"}), 400
+
+        # ── Authorization: get authenticated user from JWT, not from request body ──
+        user = get_jwt_identity()
 
         intent, priority, sentiment, confidence, is_spam = analyze_email(email)
 
@@ -486,9 +602,8 @@ def analyze():
         return jsonify(result), 200
 
     except Exception as e:
-        # Improved error handling to avoid opaque 500s
-        print(f"Error during email analysis: {e}")
-        return jsonify({"error": "Failed to analyze email due to an internal error.", "details": str(e)}), 500
+        app.logger.error(f"Error during email analysis: {e}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "Failed to analyze email due to an internal error."}), 500
 
 
 # -------------------------
@@ -529,7 +644,8 @@ def get_history(user):
 
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({"error": f"Failed to retrieve history: {str(e)}"}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/admin/history", methods=["GET"])
 @jwt_required()
@@ -552,7 +668,8 @@ def get_admin_history():
             })
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 # -------------------------
 # ACCOUNT MANAGEMENT ROUTES
@@ -561,14 +678,16 @@ def get_admin_history():
 @jwt_required(optional=True)
 def get_user_details(user_id):
     try:
-        current_identity = get_jwt_identity()
-        if current_identity and current_identity != user_id:
-             return jsonify({"error": "Unauthorized access to user details"}), 403
-             
         user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
         if not user:
             return jsonify({"error": "User not found"}), 404
-            
+
+        # Authorization: if a JWT is present, verify it belongs to this user
+        # (identity can be username; user_id can be email for OAuth users)
+        current_identity = get_jwt_identity()
+        if current_identity and current_identity != user.username and current_identity != user.email:
+            return jsonify({"error": "Unauthorized access to user details"}), 403
+
         return jsonify({
             "username": user.username,
             "email": user.email,
@@ -578,25 +697,26 @@ def get_user_details(user_id):
             "two_factor_enabled": user.two_factor_enabled
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/user/details/<user_id>", methods=["PUT"])
 @jwt_required(optional=True)
 def update_user_details(user_id):
     try:
-        current_identity = get_jwt_identity()
-        if current_identity and current_identity != user_id:
-             return jsonify({"error": "Unauthorized access"}), 403
-             
         user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
-        
-        # Auto-create profile record for users who signed in via Google (Supabase) entirely off-chain
+
+        # Authorization: if a JWT is present, verify it belongs to this user
+        current_identity = get_jwt_identity()
+        if current_identity and user and current_identity != user.username and current_identity != user.email:
+            return jsonify({"error": "Unauthorized access"}), 403
+
+        # Auto-create profile record for users who signed in via Google (Supabase)
         if not user:
-            # Generate a random impossible password for safely tracking Google accounts natively
             random_pw = bcrypt.generate_password_hash(secrets.token_hex(16)).decode('utf-8')
             user = User(username=user_id, email=user_id, password=random_pw)
             db.session.add(user)
-        
+
         data = request.json
         if "fullname" in data:
             user.fullname = data["fullname"]
@@ -608,7 +728,8 @@ def update_user_details(user_id):
         db.session.commit()
         return jsonify({"message": "Details updated successfully"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 @app.route("/api/user/password", methods=["PUT"])
 @jwt_required()
@@ -634,38 +755,60 @@ def update_user_password():
         
         return jsonify({"message": "Password updated successfully"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 # -------------------------
 # USER FEEDBACK ROUTE
 # -------------------------
 @app.route("/api/feedback", methods=["POST"])
+@jwt_required()  # ── Authorization: must be logged in to submit feedback
+@limiter.limit("60 per hour")
 def submit_feedback():
     """Record user's thumbs up/down on an analysis result."""
     try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
         data = request.json
         record_id = data.get("id")
         feedback = data.get("feedback")  # 'helpful' or 'not_helpful'
 
-        if not record_id or feedback not in ['helpful', 'not_helpful']:
-            return jsonify({"error": "Invalid feedback data"}), 400
+        # ── Input Validation ──
+        if not record_id or not isinstance(record_id, int):
+            return jsonify({"error": "Invalid record ID"}), 400
+        if feedback not in ['helpful', 'not_helpful']:
+            return jsonify({"error": "feedback must be 'helpful' or 'not_helpful'"}), 400
 
         record = EmailHistory.query.get(record_id)
         if not record:
             return jsonify({"error": "Record not found"}), 404
 
+        # ── Authorization: ensure user owns this record ──
+        current_user = get_jwt_identity()
+        if record.user != current_user:
+            return jsonify({"error": "Unauthorized: you can only provide feedback on your own records"}), 403
+
         record.user_feedback = feedback
         db.session.commit()
         return jsonify({"message": "Feedback recorded. Thank you!"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 
 # -------------------------
 # CSV EXPORT ROUTE
 # -------------------------
 @app.route("/api/export/<user>")
+@jwt_required()  # ── Authorization: must be logged in to export
+@limiter.limit("10 per hour")  # Prevent bulk data scraping
 def export_csv(user):
+    # ── Authorization: users can only export their own data ──
+    current_user = get_jwt_identity()
+    if current_user != user:
+        return jsonify({"error": "Unauthorized: you can only export your own data"}), 403
+
     records = EmailHistory.query.filter_by(user=user).all()
 
     # Generate CSV data
@@ -716,7 +859,8 @@ def generate_response():
     data = request.json
     intent = data.get("intent", "").lower()
     sentiment = data.get("sentiment", "").lower()
-    
+    priority = data.get("priority", "").lower()  # Fix: was missing, causing NameError
+
     # Simple rule-based logic for now
     if "refund" in intent or "cancel" in intent:
         if "negative" in sentiment:
@@ -747,21 +891,41 @@ def generate_response():
 
 
 @app.route("/api/feedback/correct", methods=["POST"])
+@jwt_required()  # ── Authorization: must be logged in
+@limiter.limit("30 per hour")
 def correct_feedback():
     """Receive user's corrected classification to retrain the model."""
     try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
         data = request.json
         record_id = data.get("id")
-        intent = data.get("intent")
-        sentiment = data.get("sentiment")
-        priority = data.get("priority")
+        intent = data.get("intent", "").strip()
+        sentiment = data.get("sentiment", "").strip()
+        priority = data.get("priority", "").strip()
 
-        if not record_id or not intent or not sentiment or not priority:
-            return jsonify({"error": "Missing correction fields"}), 400
+        # ── Input Validation ──
+        if not record_id or not isinstance(record_id, int):
+            return jsonify({"error": "Invalid record ID"}), 400
+        valid_intents = ["Query", "Refund", "Feedback", "Issue", "Escalation", "Spam", "Cancel"]
+        valid_sentiments = ["Positive", "Negative", "Neutral"]
+        valid_priorities = ["High", "Medium", "Low"]
+        if intent.capitalize() not in valid_intents:
+            return jsonify({"error": f"Invalid intent. Must be one of: {valid_intents}"}), 400
+        if sentiment.capitalize() not in valid_sentiments:
+            return jsonify({"error": f"Invalid sentiment. Must be one of: {valid_sentiments}"}), 400
+        if priority.capitalize() not in valid_priorities:
+            return jsonify({"error": f"Invalid priority. Must be one of: {valid_priorities}"}), 400
 
         record = EmailHistory.query.get(record_id)
         if not record:
             return jsonify({"error": "Record not found"}), 404
+
+        # ── Authorization: users can only correct their own records ──
+        current_user = get_jwt_identity()
+        if record.user != current_user:
+            return jsonify({"error": "Unauthorized: you can only correct your own records"}), 403
 
         record.intent = intent.capitalize()
         record.sentiment = sentiment.capitalize()
@@ -785,7 +949,8 @@ def correct_feedback():
         return jsonify({"message": "Correction recorded and model training dataset updated!"}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
 
 if __name__ == "__main__":
@@ -811,5 +976,5 @@ if __name__ == "__main__":
                 conn.commit()
             print("✅ DB migration complete.")
         except Exception as e:
-            print(f"\u26a0\ufe0f Migration note: {e}")
+            app.logger.warning(f"Migration note: {e}")
     app.run(debug=True)

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Hero from "../components/Hero";
-import { analyzeEmail } from "../api";
+import { analyzeEmail, submitFeedback, submitCorrection } from "../api";
 import { useBackground } from "../context/BackgroundContext";
 import { playSound } from "../utils/soundEffects";
 import { getSentimentVisual, normalizeSentiment, sentimentTone } from "../utils/sentiment";
@@ -15,7 +15,7 @@ export default function Home() {
   const [notification, setNotification] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [recordId, setRecordId] = useState(null);
-  
+
   // Correction State
   const [correctionMode, setCorrectionMode] = useState(false);
   const [correctionData, setCorrectionData] = useState({ intent: '', sentiment: '', priority: '' });
@@ -58,7 +58,8 @@ export default function Home() {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
-      const data = await analyzeEmail(email, user);
+      // user is now extracted server-side from JWT — no need to pass it
+      const data = await analyzeEmail(email);
       setResult(data);
       if (data.record_id) setRecordId(data.record_id);
       // Play smart real-time audio feedback based on analysis logic
@@ -81,7 +82,7 @@ export default function Home() {
       console.error("Analysis failed:", error);
       playSound('error');
       setNotification("❌ Analysis Failed. Please try again.");
-      setTimeout(() => setNotification(""), 2000); // Give errors slightly longer to be read
+      setTimeout(() => setNotification(""), 2000);
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,7 @@ export default function Home() {
     setBgState('default');
   };
 
-  const submitFeedback = async (type) => {
+  const handleFeedback = async (type) => {
     if (!recordId || feedbackSent) return;
     setFeedbackSent(true);
 
@@ -111,30 +112,19 @@ export default function Home() {
     }
 
     try {
-      await fetch("http://127.0.0.1:5000/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: recordId, feedback: type })
-      });
+      // submitFeedback sends JWT Authorization header automatically
+      await submitFeedback(recordId, type);
     } catch (e) { console.error(e); }
   };
 
-  const submitCorrection = async () => {
+  const handleCorrection = async () => {
     if (!recordId) return;
     setCorrectionSent(true);
     setCorrectionMode(false);
     try {
-      await fetch("http://127.0.0.1:5000/api/feedback/correct", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: recordId,
-          intent: correctionData.intent,
-          sentiment: correctionData.sentiment,
-          priority: correctionData.priority
-        })
-      });
-      playSound('high-priority'); // success chime
+      // submitCorrection sends JWT Authorization header automatically
+      await submitCorrection(recordId, correctionData);
+      playSound('high-priority');
       setNotification("✅ AI Model Training Queue Updated!");
       setTimeout(() => setNotification(""), 2000);
     } catch (e) {
@@ -253,15 +243,10 @@ export default function Home() {
                       const visuals = getSentimentVisual(result.sentiment);
                       const sentimentLabel = normalizeSentiment(result.sentiment);
                       return (
-                    <span
-                      className="result-val"
-                      style={{
-                        color: visuals.color
-                      }}
-                    >
-                      {sentimentLabel}
-                      {result.sentiment_strength ? ` • ${result.sentiment_strength}%` : ""}
-                    </span>
+                        <span className="result-val" style={{ color: visuals.color }}>
+                          {sentimentLabel}
+                          {result.sentiment_strength ? ` • ${result.sentiment_strength}%` : ""}
+                        </span>
                       );
                     })()}
                   </div>
@@ -315,6 +300,7 @@ export default function Home() {
                       </p>
                     )}
                   </div>
+
                   {/* Spam Badge */}
                   {result.is_spam && (
                     <div style={{ marginTop: '16px', padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -349,15 +335,10 @@ export default function Home() {
                              </div>
                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Sentiment</label>
-                             <select value={correctionData.sentiment} onChange={e => setCorrectionData({...correctionData, sentiment: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
-                                 <option value="Very Positive" style={{ background: '#1e293b' }}>Very Positive</option>
+                               <select value={correctionData.sentiment} onChange={e => setCorrectionData({...correctionData, sentiment: e.target.value})} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '13px', outline: 'none' }}>
                                  <option value="Positive" style={{ background: '#1e293b' }}>Positive</option>
-                                 <option value="Slightly Positive" style={{ background: '#1e293b' }}>Slightly Positive</option>
                                  <option value="Neutral" style={{ background: '#1e293b' }}>Neutral</option>
-                                 <option value="Mixed" style={{ background: '#1e293b' }}>Mixed</option>
-                                 <option value="Slightly Negative" style={{ background: '#1e293b' }}>Slightly Negative</option>
                                  <option value="Negative" style={{ background: '#1e293b' }}>Negative</option>
-                                 <option value="Very Negative" style={{ background: '#1e293b' }}>Very Negative</option>
                                </select>
                              </div>
                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -369,7 +350,7 @@ export default function Home() {
                                </select>
                              </div>
                            </div>
-                           <button className="btn-primary" onClick={submitCorrection} style={{ width: '100%', fontSize: '13px', padding: '10px' }}>
+                           <button className="btn-primary" onClick={handleCorrection} style={{ width: '100%', fontSize: '13px', padding: '10px' }}>
                              Train Model with Correction
                            </button>
                         </div>
@@ -378,11 +359,11 @@ export default function Home() {
                           <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '10px' }}>Was this analysis helpful?</p>
                           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                             <button
-                              onClick={() => submitFeedback('helpful')}
+                              onClick={() => handleFeedback('helpful')}
                               style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.08)', color: '#10b981', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
                             >👍 Helpful</button>
                             <button
-                              onClick={() => submitFeedback('not_helpful')}
+                              onClick={() => handleFeedback('not_helpful')}
                               style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(248,113,113,0.4)', background: 'rgba(248,113,113,0.08)', color: '#f87171', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
                             >👎 Not Helpful</button>
                           </div>
@@ -407,23 +388,23 @@ export default function Home() {
               exit={{ opacity: 0, scale: 0.8, y: -30 }}
               style={{
                 pointerEvents: 'auto',
-                padding: '16px 32px', // Slightly smaller
+                padding: '16px 32px',
                 background: notification.includes('❌') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                backdropFilter: 'blur(40px) saturate(150%)', // Glossy heavy frosted glass
+                backdropFilter: 'blur(40px) saturate(150%)',
                 WebkitBackdropFilter: 'blur(40px) saturate(150%)',
                 border: notification.includes('❌') ? '1px solid rgba(239, 68, 68, 0.6)' : '1px solid rgba(16, 185, 129, 0.6)',
-                borderTop: notification.includes('❌') ? '1px solid rgba(255, 150, 150, 0.6)' : '1px solid rgba(150, 255, 180, 0.6)', // Bright top edge for gloss
+                borderTop: notification.includes('❌') ? '1px solid rgba(255, 150, 150, 0.6)' : '1px solid rgba(150, 255, 180, 0.6)',
                 color: '#f8fafc',
-                borderRadius: '16px', // Tighter rounding
-                boxShadow: '0 25px 50px rgba(0,0,0,0.7), inset 0 2px 20px rgba(255,255,255,0.08)', // Internal glossy rim
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px rgba(0,0,0,0.7), inset 0 2px 20px rgba(255,255,255,0.08)',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '12px',
-                fontSize: '16px', // Smaller text
+                fontSize: '16px',
                 letterSpacing: '0.5px',
-                minWidth: '280px' // Smaller min width
+                minWidth: '280px'
               }}
             >
               <span style={{ fontSize: '22px' }}>{notification.includes('❌') ? '❌' : '✨'}</span>

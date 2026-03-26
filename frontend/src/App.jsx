@@ -11,6 +11,7 @@ import Documentation from "./pages/Documentation";
 import ForgotPassword from "./pages/ForgotPassword";
 import UpdatePassword from "./pages/UpdatePassword";
 import Account from "./pages/Account";
+import History from "./pages/History";
 import Hero from "./components/Hero";
 import NeuralBackground from "./components/NeuralBackground";
 import { BackgroundProvider } from "./context/BackgroundContext";
@@ -68,6 +69,7 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/history" element={<History />} />
           </Routes>
         </div>
       </BrowserRouter>

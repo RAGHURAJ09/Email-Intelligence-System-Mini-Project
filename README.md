@@ -20,10 +20,11 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 * **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Technical Support, Query) reducing manual sorting time.
 * **😡 Sentiment Analysis:** Detects the emotional tone of the email (Positive, Negative, Neutral) to gauge customer satisfaction instantly.
 * **🚨 Priority & Spam Flagging:** Automatically tags emails as High, Medium, or Low urgency. Includes an independent AI layer to aggressively filter out promotional spam or phishing.
-* **🔒 Secure Authentication:** Features a robust JWT (JSON Web Token) based local authentication system with `bcrypt` password hashing, alongside **Google OAuth** powered by Supabase.
-* **🛡️ Bulletproof Error Handling:** The API incorporates comprehensive exception handling and detailed failure states across endpoints to guide and ensure user robustness.
-* **📊 Historical Auditing:** Fully integrated PostgreSQL database saves past analysis queries chronologically for logged-in users.
-* **🎨 Modern UI/UX:** A highly responsive, neo-futuristic user interface built with React, featuring frosted glass aesthetics and fluid Framer Motion animations.
+* **🔒 Secure Authentication & 2FA:** Features a robust JWT (JSON Web Token) based local authentication system with `bcrypt` password hashing, Google OAuth, and optional TOTP-based Two-Factor Authentication (2FA).
+* **🛡️ Bulletproof Error Logging:** Comprehensive global exception handling records exact back-end stack traces securely to `backend.log` using a rotating file handler while delivering clean JSON payloads.
+* **📊 Historical Auditing UI:** A fully dedicated spreadsheet-style audit page to search, filter, sort, and export chronological inferences into CSV reports.
+* **🤖 AI Contextual Replies:** Connects to generative APIs to automatically draft context-aware support responses based on the email's intent and sentiment markers.
+* **🎨 Modern UI/UX:** A highly responsive user interface built with React, featuring Aurora gradients, frosted glass aesthetics, and fluid Framer Motion animations.
 
 ---
 
@@ -126,9 +127,9 @@ npm run dev
 ---
 
 ## 🔮 Future Enhancements
-* Integrate **Large Language Model (LLM) APIs** (like ChatGPT or Claude) to automatically draft highly contextual email replies based on intent.
-* Wire directly into the **Gmail API / Outlook API** to autonomously scrape and classify a business's live, unread support inbox.
-* Introduce an **Admin Dashboard** utilizing Chart.js to visualize sentiment trends over monthly traffic.
+* Wire directly into the **Gmail API / Outlook API** to autonomously scrape and classify a business's live, unread support inbox via Webhooks.
+* Expand the Natural Language pipeline for **Multilingual NLP Support** allowing classification in Spanish, French, or Hindi.
+* Introduce an **Admin Reporting Dashboard** utilizing advanced Chart.js graphics to visualize rolling weekly sentiment trends.
 
 ---
 *Created as an academic mini-project to demonstrate the seamless integration of Data Science/NLP modeling directly into a modern full-stack web application.*

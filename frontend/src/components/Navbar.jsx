@@ -27,11 +27,12 @@ export default function Navbar() {
 
   useEffect(() => {
     if (user) {
+      // Use helper from api.js which handles tokens/headers correctly
       fetchUserDetails(user).then(data => {
-        if (data && !data.error && data.profile_pic) {
-          setProfilePic(data.profile_pic);
+        if (data && !data.error) {
+          if (data.profile_pic) setProfilePic(data.profile_pic);
         }
-      }).catch(err => console.error(err));
+      }).catch(err => console.error("Navbar failed to load user details:", err));
     }
   }, [user]);
 
@@ -161,6 +162,7 @@ export default function Navbar() {
               <DropdownLink href="/">Home</DropdownLink>
               <DropdownLink href="/about">Team</DropdownLink>
               <DropdownLink href="/dashboard">Dashboard</DropdownLink>
+              {user && <DropdownLink href="/history">History Audit</DropdownLink>}
               
               {!user && (
                 <>

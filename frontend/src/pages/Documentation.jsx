@@ -140,12 +140,22 @@ export default function Documentation() {
                     <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
                         <li style={{ marginBottom: '10px' }}><strong>Model Integration:</strong> Initially, running the ML model directly inside the Flask route caused slow response times. I fixed this by pre-loading the models using `pickle` when the server starts, rather than loading them on every request.</li>
                         <li style={{ marginBottom: '10px' }}><strong>CORS Errors:</strong> Connecting the Vite React frontend (port 5173) to the Flask backend (port 5000) was blocked by the browser. I had to configure <code>Flask-CORS</code> to allow cross-origin requests securely.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Sarcasm Detection:</strong> A common limitation of basic TF-IDF models is that they struggle with sarcasm (e.g., "Oh great, the app crashed again!"). The model might see "great" as positive. I had to add more varied training data to compensate for this bias.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Sarcasm Detection:</strong> A common limitation of basic TF-IDF models is that they struggle with sarcasm. The model might see "great" as positive. I had to add more varied training data to compensate for this bias.</li>
                     </ul>
                 </section>
 
                 <section style={{ marginBottom: '40px' }}>
-                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>7. Database Schema</h2>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>7. Advanced Features Implemented</h2>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+                        <li style={{ marginBottom: '10px' }}><strong>Historical Auditing Dashboard:</strong> A dedicated, dynamic spreadsheet-style UI to filter, search, sort, and export thousands of past email inferences into CSV.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Bulletproof Error Logging:</strong> Global exception handlers in the backend catch 500 errors gracefully, logging the full stack trace securely into rotating `backend.log` files while returning user-friendly JSON payloads to the frontend.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Two-Factor Authentication (2FA):</strong> Integrating `pyotp` and QR codes to securely wrap OAuth and Native logins with an additional layer of security.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>AI Drafted Contextual Responses:</strong> Automatically generating structured, personalized draft replies based on intent, sentiment, and priority signals via API.</li>
+                    </ul>
+                </section>
+
+                <section style={{ marginBottom: '40px' }}>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>8. Database Schema</h2>
                     <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
                         I created two main tables using Flask-SQLAlchemy, which are now hosted globally via Supabase, to manage authentication and history:
                     </p>
@@ -175,16 +185,16 @@ export default function Documentation() {
                 </section>
 
                 <section style={{ marginBottom: '40px' }}>
-                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>8. Future Work</h2>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>9. Future Exploration</h2>
                     <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-                        <li style={{ marginBottom: '10px' }}>Integrating a Large Language Model (LLM) API like ChatGPT to automatically generate contextualized draft replies instead of basic if/else responses.</li>
-                        <li style={{ marginBottom: '10px' }}>Connecting directly to a real Gmail inbox using the Gmail API to pull unread emails automatically.</li>
-                        <li style={{ marginBottom: '10px' }}>Adding Chart.js graphs on the admin dashboard to easily visualize how many "Angry" emails were received in a week.</li>
+                        <li style={{ marginBottom: '10px' }}>Integrating a Large Language Model (LLM) for generalized conversational flow and reasoning.</li>
+                        <li style={{ marginBottom: '10px' }}>Connecting directly to a real Gmail inbox using the Gmail API to pull unread emails automatically via Webhooks.</li>
+                        <li style={{ marginBottom: '10px' }}>Expanding the model to perform Multilingual NLP classification.</li>
                     </ul>
                 </section>
 
                 <section style={{ marginBottom: '20px' }}>
-                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>9. Conclusion</h2>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>10. Conclusion</h2>
                     <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)' }}>
                         Through this project, I successfully learned how to integrate Machine Learning models within a modern web application stack. By automating the triage process, this Email Intelligence System demonstrates how AI can minimize manual effort in customer support pipelines and enable agents to react to critical situations much faster.
                     </p>
