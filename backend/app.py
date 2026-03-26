@@ -479,8 +479,14 @@ def disable_2fa():
         app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
 
+# Custom key for password reset to limit per target email address
+def get_reset_email_key():
+    if request.is_json:
+        return request.json.get("email", get_remote_address())
+    return get_remote_address()
+
 @app.route("/api/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour")  # Prevent email flooding
+@limiter.limit("5 per hour", key_func=get_reset_email_key)  # Prevent email flooding per user account
 def forgot_password():
     """Generate a reset token and send an email."""
     try:
