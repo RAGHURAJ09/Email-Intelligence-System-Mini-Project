@@ -111,4 +111,18 @@ export async function exportCSV(user) {
   return res; // Returns raw response (streaming CSV)
 }
 
+// ── Daytona Sandbox (JWT required) ──
+export async function secureHeaderAnalysis(headersText) {
+  const token = localStorage.getItem('access_token');
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API}/secure/header-analysis`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ headers: headersText })
+  });
+  return res.json();
+}
+
 export default API;

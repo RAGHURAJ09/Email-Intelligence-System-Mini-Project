@@ -20,8 +20,10 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 * **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Technical Support, Query) reducing manual sorting time.
 * **😡 Sentiment Analysis:** Detects the emotional tone of the email (Positive, Negative, Neutral) to gauge customer satisfaction instantly.
 * **🚨 Priority & Spam Flagging:** Dual-layer AI/Heuristic system to tag emails (High, Medium, Low) and aggressively filter out promotional spam or phishing.
+* **🛡️ Secure Sandbox Analysis:** Integrated **Daytona API** to execute isolated Python scripts for deep header analysis, detecting malicious tracking pixels or suspicious X-headers.
 * **🔒 Professional Security:** Robust JWT-based authentication with `bcrypt` hashing, Google OAuth 2.0 integration, and TOTP-based Two-Factor Authentication (2FA).
 * **🛡️ Security Hardening:** Implemented `flask-limiter` for granular rate-limiting and identity verification checks to prevent unauthorized data access between users.
+* **📈 Rich Actionable Insights:** Generates detailed feedback including urgency reasons, tone descriptors, and specific action items for support agents.
 * **👍 Feedback Loop:** Integrated User Feedback system (Helpful/Not Helpful) to record model accuracy and identify areas for NLP refinement.
 * **📊 Historical Auditing UI:** A fully dedicated spreadsheet-style audit page to search, filter, sort, and export chronological inferences into CSV reports.
 * **👤 User Profile Management:** Customizable accounts allowing users to manage profile pictures (Base64), bios, and synchronized identity across auth providers.
@@ -41,6 +43,7 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 **Backend API:**
 * **Framework:** Python 3 Flask
 * **Middleware:** Flask-CORS, Flask-Limiter (Rate Limiting)
+* **Sandboxing:** **Daytona SDK** (Isolated Code Execution)
 * **Machine Learning:** Scikit-Learn, NLTK
 * **Serialization:** Pickle
 

@@ -55,6 +55,7 @@ export default function Documentation() {
                             <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.6', color: 'var(--text-muted)' }}>
                                 <li>Python 3.x</li>
                                 <li>Flask (REST API)</li>
+                                <li>Daytona SDK (Sandboxing)</li>
                                 <li>Flask-CORS & Flask-Limiter</li>
                                 <li>Pickle (Model serialization)</li>
                             </ul>
@@ -86,14 +87,19 @@ export default function Documentation() {
                         The system follows a standard Client-Server architecture with an integrated Machine Learning module:
                     </p>
                     <ol style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-                        <li style={{ marginBottom: '10px' }}><strong>User Input:</strong> The support agent or admin pastes the customer email into the React frontend interface.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>API Request:</strong> The frontend makes an asynchronous HTTP POST request to the Flask backend's <code>/api/analyze</code> endpoint with the email text payload.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Preprocessing:</strong> The backend receives the text and passes it to the loaded TF-IDF Vectorizer, which converts the raw text into numerical feature vectors.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Prediction Layer:</strong> The vectorized text is fed into parallel pre-trained ML models and a heuristic override layer to independently predict Intent, Sentiment, Priority, and Spam.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Security Verification:</strong> The backend verifies JWT identity and applies rate-limiting before proceeding with database operations.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Data Persistence:</strong> The email, its analysis, and future user feedback are saved to the Supabase PostgreSQL database.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Response Generation:</strong> A rule-based engine constructs a draft reply based on the predicted intent and sentiment.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>UI Update:</strong> The Flask API responds with a JSON object containing the predictions and draft response. The React frontend updates the UI using Framer Motion animations to present the actionable insights to the user.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>User Input:</strong> The support agent pastes the customer email or headers into the React frontend.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>API Request:</strong> The frontend makes an asynchronous POST request to the <code>/api/analyze</code> or <code>/api/secure/header-analysis</code> endpoint.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Preprocessing:</strong> The backend cleans the text and passes it to the pre-loaded TF-IDF Vectorizer.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Prediction & Sandbox Layer:</strong> 
+                            <ul style={{ listStyleType: 'circle', paddingLeft: '20px', marginTop: '5px' }}>
+                                <li><strong>ML Models:</strong> Predict Intent, Sentiment, Priority, and Spam status.</li>
+                                <li><strong>Daytona Sandbox:</strong> For sensitive header analysis, the backend spins up an isolated Daytona sandbox to execute security-check Python scripts securely.</li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: '10px' }}><strong>Security Verification:</strong> Identity is verified via JWT, and rate-limiting is enforced via Flask-Limiter.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Data Persistence:</strong> Analysis results and user feedback are stored in the Supabase PostgreSQL database.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Actionable Insights Engine:</strong> A logic engine generates detailed feedback including a summary, urgency reasons, and tone-specific response strategies.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>UI Update:</strong> The React frontend presents the results with fluid Framer Motion transitions and premium visual components.</li>
                     </ol>
                 </section>
 
@@ -149,8 +155,10 @@ export default function Documentation() {
                 <section style={{ marginBottom: '40px' }}>
                     <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>7. Advanced Features Implemented</h2>
                     <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+                        <li style={{ marginBottom: '10px' }}><strong>Isolated Security Sandbox:</strong> Utilizing **Daytona SDK** to execute security-sensitive analysis in a transient, isolated sandbox environment, preventing potential RCE or system infection from malicious payloads.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Historical Auditing Dashboard:</strong> A dedicated, dynamic spreadsheet-style UI to filter, search, sort, and export thousands of past email inferences into CSV.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Bulletproof Error Logging:</strong> Global exception handlers in the backend catch 500 errors gracefully, logging the full stack trace securely into rotating `backend.log` files while returning user-friendly JSON payloads to the frontend.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Rich Actionable Insights:</strong> Beyond just classification, the system provides "Urgency Reasons", "Tone Descriptors", and specific "Action Items" for agents to handle high-risk situations effectively.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Bulletproof Error Logging:</strong> Global exception handlers catch 500 errors gracefully, logging the full stack trace securely into rotating `backend.log` files.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Two-Factor Authentication (2FA):</strong> Integrating `pyotp` and QR codes to provide an optional hardware-level security layer for all accounts.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Profile & Identity Management:</strong> Comprehensive user profiles allowing for custom avatars, bios, and synchronized Google/Local identity management.</li>
                         <li style={{ marginBottom: '10px' }}><strong>API Rate Limiting:</strong> Implementation of `flask-limiter` to protect ML endpoints from brute-force attacks and resource exhaustion.</li>
@@ -174,7 +182,7 @@ export default function Documentation() {
                             <tbody>
                                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                     <td style={{ padding: '10px', fontWeight: 'bold' }}>User</td>
-                                    <td style={{ padding: '10px' }}>id, username, email, password <strong>(Hashed)</strong>, profile_pic, bio, 2fa_enabled</td>
+                                    <td style={{ padding: '10px' }}>id, username, email, password <strong>(Hashed)</strong>, fullname, profile_pic, bio, two_factor_enabled</td>
                                     <td style={{ padding: '10px' }}>Stores credentials, profile metadata, and security settings. Supports both local and Google OAuth users.</td>
                                 </tr>
                                 <tr>

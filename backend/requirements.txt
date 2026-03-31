@@ -19,3 +19,6 @@ scikit-learn
 
 # Environment Variables
 python-dotenv==1.0.1
+
+# Sandbox execution
+daytona-sdk

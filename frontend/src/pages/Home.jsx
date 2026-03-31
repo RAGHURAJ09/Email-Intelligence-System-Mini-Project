@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Hero from "../components/Hero";
-import { analyzeEmail, submitFeedback, submitCorrection } from "../api";
+import { analyzeEmail, submitFeedback, submitCorrection, secureHeaderAnalysis } from "../api";
 import { useBackground } from "../context/BackgroundContext";
 import { playSound } from "../utils/soundEffects";
 import { getSentimentVisual, normalizeSentiment, sentimentTone } from "../utils/sentiment";
@@ -20,6 +20,12 @@ export default function Home() {
   const [correctionMode, setCorrectionMode] = useState(false);
   const [correctionData, setCorrectionData] = useState({ intent: '', sentiment: '', priority: '' });
   const [correctionSent, setCorrectionSent] = useState(false);
+  
+  // Daytona Sandbox State
+  const [activeTab, setActiveTab] = useState("analyzer"); // "analyzer" or "sandbox"
+  const [headerInput, setHeaderInput] = useState("");
+  const [sandboxResult, setSandboxResult] = useState(null);
+  const [sandboxing, setSandboxing] = useState(false);
 
   const user = localStorage.getItem("user");
   const resultRef = useRef(null);
@@ -140,7 +146,6 @@ export default function Home() {
     setCorrectionSent(true);
     setCorrectionMode(false);
     try {
-      // submitCorrection sends JWT Authorization header automatically
       await submitCorrection(recordId, correctionData);
       playSound('high-priority');
       setNotification("✅ AI Model Training Queue Updated!");
@@ -148,6 +153,30 @@ export default function Home() {
     } catch (e) {
       console.error(e);
       setCorrectionSent(false);
+    }
+  };
+
+  const runSandboxAnalysis = async () => {
+    if (!headerInput.trim()) {
+      setNotification("❌ Please paste headers to analyze.");
+      setTimeout(() => setNotification(""), 2000);
+      return; 
+    }
+    setSandboxing(true);
+    setSandboxResult(null);
+    try {
+      const response = await secureHeaderAnalysis(headerInput);
+      if (response && response.report) {
+         setSandboxResult(response);
+         setNotification("✅ Sandbox Analysis Complete!");
+         playSound('neutral');
+      } else {
+         setNotification(`❌ ${response?.error || 'Sandbox Failed'}`);
+      }
+    } catch (e) {
+      setNotification("❌ Daytona API Connection Error");
+    } finally {
+      setSandboxing(false);
     }
   };
 
@@ -164,10 +193,27 @@ export default function Home() {
           style={{ padding: "120px 20px 60px 20px" }}
         >
           <div className="analyzer-card" style={{ width: "100%", maxWidth: "800px" }}>
-            <h2 className="analyzer-heading">Email Intelligence Analyzer</h2>
-            <p className="text-muted" style={{ textAlign: 'center', marginBottom: '32px' }}>
-              Paste customer communication below to extract intent, sentiment, and priority simultaneously.
-            </p>
+            <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '30px' }}>
+              <button 
+                onClick={() => setActiveTab("analyzer")}
+                style={{ flex: 1, padding: '15px', background: activeTab === 'analyzer' ? 'rgba(99,102,241,0.1)' : 'transparent', border: 'none', color: activeTab === 'analyzer' ? '#a5b4fc' : '#64748b', fontSize: '15px', fontWeight: 600, borderBottom: activeTab === 'analyzer' ? '2px solid #6366f1' : 'none', cursor: 'pointer' }}
+              >
+                 🧠 Intelligence Analyzer
+              </button>
+              <button 
+                onClick={() => setActiveTab("sandbox")}
+                style={{ flex: 1, padding: '15px', background: activeTab === 'sandbox' ? 'rgba(16,185,129,0.1)' : 'transparent', border: 'none', color: activeTab === 'sandbox' ? '#34d399' : '#64748b', fontSize: '15px', fontWeight: 600, borderBottom: activeTab === 'sandbox' ? '2px solid #10b981' : 'none', cursor: 'pointer' }}
+              >
+                 🛡️ Security Sandbox
+              </button>
+            </div>
+
+            {activeTab === "analyzer" ? (
+              <>
+                <h2 className="analyzer-heading">Email Intelligence Analyzer</h2>
+                <p className="text-muted" style={{ textAlign: 'center', marginBottom: '32px' }}>
+                  Paste customer communication below to extract intent, sentiment, and priority simultaneously.
+                </p>
 
             {/* Sample Email Chips */}
             <div style={{ marginBottom: '12px' }}>
@@ -396,6 +442,83 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
+              </>
+            ) : (
+              // Daytona Sandbox UI
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <h2 className="analyzer-heading" style={{ color: '#10b981' }}>Secure Sandbox Header Analysis</h2>
+                <p className="text-muted" style={{ textAlign: 'center', marginBottom: '32px' }}>
+                  Powered by <strong>Daytona API</strong>. Analyzes raw email headers in an isolated Linux sandbox to detect tracking pixels or malicious X-headers.
+                </p>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Paste raw headers or try this:</p>
+                  <button 
+                    onClick={() => setHeaderInput("X-Spy-Pixel: detected\nFrom: unknown@spam.com\nX-Mailer: RogueAgent 1.0\nX-Tracker: active")}
+                    style={{ padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(16,185,129,0.05)', color: '#34d399', fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    Load Suspicious Sample
+                  </button>
+                </div>
+
+                <textarea
+                  className="tech-textarea"
+                  style={{ minHeight: "150px", fontSize: "14px", fontFamily: "monospace", borderColor: 'rgba(16,185,129,0.2)' }}
+                  placeholder="Paste raw email headers here..."
+                  value={headerInput}
+                  onChange={(e) => setHeaderInput(e.target.value)}
+                />
+
+                <div className="btn-group">
+                  <button 
+                    className="btn-primary" 
+                    onClick={runSandboxAnalysis} 
+                    disabled={sandboxing || !user}
+                    style={{ background: !user ? 'rgba(128,128,128,0.2)' : '#10b981', borderColor: '#10b981' }}
+                  >
+                    {!user ? "🔒 Login Required" : (sandboxing ? "Executing in Sandbox..." : "Run Secure Sandbox Analysis")}
+                  </button>
+                  <button className="btn-secondary" onClick={() => { setHeaderInput(""); setSandboxResult(null); }}>Clear</button>
+                </div>
+
+                <AnimatePresence>
+                  {sandboxResult && (
+                    <motion.div 
+                      className="result-card-modern" 
+                      initial={{ scale: 0.95, opacity: 0 }} 
+                      animate={{ scale: 1, opacity: 1 }}
+                      style={{ border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.03)' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                        <h3 style={{ margin: 0, color: '#34d399', fontSize: '18px' }}>Sandbox Execution Report</h3>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>SANDBOX ID: {sandboxResult.sandbox_id.substring(0,8)}...</span>
+                      </div>
+                      
+                      <div className="result-row">
+                        <span className="result-key">Tracking Pixels</span>
+                        <span className="result-val" style={{ color: sandboxResult.report.tracking_pixels_detected ? '#f87171' : '#10b981' }}>
+                          {sandboxResult.report.tracking_pixels_detected ? "🚨 DETECTED" : "✅ NONE"}
+                        </span>
+                      </div>
+
+                      <div className="result-row">
+                        <span className="result-key">Threat Status</span>
+                        <span className="result-val">{sandboxResult.report.status}</span>
+                      </div>
+
+                      {sandboxResult.report.suspicious_headers.length > 0 && (
+                        <div style={{ marginTop: '15px', padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
+                          <span className="result-key" style={{ color: '#f87171', display: 'block', marginBottom: '5px' }}>Flagged Headers:</span>
+                          {sandboxResult.report.suspicious_headers.map((h, i) => (
+                            <code key={i} style={{ display: 'block', fontSize: '12px', color: '#fca5a5' }}>{h}</code>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
           </div>
         </motion.div>
       )}

@@ -1,19 +1,20 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import pickle
 import os
-from dotenv import load_dotenv
 import csv
 import io
-from flask import Response
+import json
+import secrets
+from dotenv import load_dotenv
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_mail import Mail, Message
-import secrets
 from datetime import datetime, timedelta
+from daytona_sdk import Daytona, DaytonaConfig
 
 load_dotenv()
 
@@ -38,6 +39,13 @@ ALLOWED_ORIGINS = [
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
 bcrypt = Bcrypt(app)
+
+# -------------------------
+# DAYTONA SETUP
+# Used for secure, isolated code execution
+# -------------------------
+daytona_config = DaytonaConfig(api_key=os.getenv("DAYTONA_API_KEY"))
+daytona = Daytona(daytona_config)
 
 # -------------------------
 # RATE LIMITING
@@ -158,6 +166,10 @@ class User(db.Model):
     bio = db.Column(db.Text, nullable=True)
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
+
+    def __init__(self, **kwargs):
+        """Explicit constructor to fix 'unexpected keyword argument' errors."""
+        super(User, self).__init__(**kwargs)
 
 class EmailHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -626,6 +638,59 @@ def analyze():
         app.logger.error(f"Error during email analysis: {e}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "message": "Failed to analyze email due to an internal error."}), 500
 
+# -------------------------
+# SECURE DAYTONA EXECUTION
+# -------------------------
+@app.route("/api/secure/header-analysis", methods=["POST"])
+@jwt_required()
+def secure_header_analysis():
+    """
+    Experimental: Uses Daytona to spin up a secure sandbox and run a 
+    Python script to analyze email headers for malicious tracking pixels.
+    """
+    try:
+        data = request.json
+        raw_headers = data.get("headers", "")
+        
+        if not raw_headers:
+            return jsonify({"error": "No headers provided"}), 400
+
+        sandbox = daytona.create()
+        
+        try:
+            # Script to run inside the sandbox
+            analysis_script = f"""
+import json
+headers = {json.dumps(raw_headers)}
+# Look for common tracking pixel patterns or suspicious X-headers
+report = {{
+    "tracking_pixels_detected": "pixel" in headers.lower() or "tracker" in headers.lower(),
+    "suspicious_headers": [h for h in headers.split('\\n') if 'x-spy' in h.lower()],
+    "status": "Securely analyzed in Daytona Sandbox"
+}}
+print(json.dumps(report))
+            """
+            
+            # Execute the script in the sandbox safely
+            response = sandbox.process.code_run(analysis_script)
+            report_data = json.loads(response.result)
+            sandbox_id = sandbox.id
+            
+        finally:
+            try:
+                daytona.delete(sandbox)
+            except Exception as cleanup_err:
+                app.logger.error(f"Failed to delete Daytona Sandbox {sandbox.id}: {cleanup_err}")
+                
+        return jsonify({
+            "report": report_data,
+            "sandbox_id": sandbox_id
+        }), 200
+
+    except Exception as e:
+        app.logger.error(f"Daytona Execution Error: {str(e)}")
+        return jsonify({"error": "Sandbox execution failed", "message": str(e)}), 500
+
 
 # -------------------------
 # HISTORY ROUTE
@@ -999,3 +1064,5 @@ if __name__ == "__main__":
         except Exception as e:
             app.logger.warning(f"Migration note: {e}")
     app.run(debug=True)
+
+
