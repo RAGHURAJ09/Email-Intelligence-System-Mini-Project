@@ -101,7 +101,7 @@ export default function Login() {
 
       if (data.message && !data.error) {
         playSound('success');
-        localStorage.setItem("user", username);
+        localStorage.setItem("user", data.username || username);
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token);
         }

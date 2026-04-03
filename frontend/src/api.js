@@ -107,7 +107,10 @@ export async function exportCSV(user) {
   const headers = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API}/export/${encodeURIComponent(user)}`, { headers });
+  const res = await fetch(`${API}/export/${encodeURIComponent(user)}`, { 
+    headers,
+    credentials: 'include'
+  });
   return res; // Returns raw response (streaming CSV)
 }
 

@@ -43,7 +43,7 @@ export default function About() {
           >
             <img src="/samridhi.jpeg" className="team-img" alt="Samridhi" />
             <h3>Samridhi Jaiswal</h3>
-            <p className="role">AI Engineer</p>
+            <p className="role">Machine Learning Engineer</p>
           </motion.div>
         </Tilt>
 
@@ -56,7 +56,7 @@ export default function About() {
           >
             <img src="/yash.jpeg" className="team-img" alt="Yash" />
             <h3>Yash Shakya</h3>
-            <p className="role">AI Engineer</p>
+            <p className="role">Machine Learning Engineer</p>
           </motion.div>
         </Tilt>
 

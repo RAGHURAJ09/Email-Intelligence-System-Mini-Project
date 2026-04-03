@@ -243,52 +243,67 @@ def detect_spam_keywords(text):
     return spam_score >= 2  # Flag if 2+ spam patterns found
 
 def analyze_email(text):
+    """
+    Enhanced analysis engine: 
+    1. ML-based prediction as baseline.
+    2. Context-aware keyword overrides for high-stakes intents.
+    3. Sentiment-Priority correlation for better response suggestions.
+    """
     vec = vectorizer.transform([text])
+    text_lower = text.lower()
     
-    # 0. Predict Spam — use ML model if available, fallback to keywords
+    # 0. Predict Spam
     is_spam_pred = False
     if spam_model:
         is_spam_pred = bool(spam_model.predict(vec)[0])
-    # Always apply keyword check as an additional layer
+    # Keyword fallback for spam (always active)
     if not is_spam_pred:
         is_spam_pred = detect_spam_keywords(text)
         
-    # 1. Predict Intent with Confidence Check
+    # 1. Base ML Predictions
     probs = intent_model.predict_proba(vec)[0]
     max_prob = max(probs)
-    text_lower = text.lower()
-
-    # ── Override: If explicit 'refund' or 'money back' is mentioned, prioritize Refund intent ──
-    if any(word in text_lower for word in ['refund', 'money back', 'reimbursement', 'repay', 'full refund']):
-        return "Refund", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
-
-    if max_prob < 0.55:
-        # Smart Uncertainty fallback based on keyword heuristics
-        # Reordered: Prioritize Refund and Escalation over general Issues
-        if any(word in text_lower for word in ['refund', 'charged', 'money', 'cancel', 'angry', 'stolen', 'missing']):
-            return "Refund", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
-        elif any(word in text_lower for word in ['fraud', 'scam', 'legal', 'lawyer', 'attorney', 'sue', 'police', 'report', 'unauthorized', 'stolen']):
-            return "Escalation", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
-        elif any(word in text_lower for word in ['explode', 'burn', 'fire', 'danger', 'injury', 'broken', 'shattered', 'bleeding', 'hospital', 'hazard', 'toxic']):
-            return "Issue", "High", "Negative", round(max_prob * 100, 2), is_spam_pred
-        else:
-            return "Query", "Low", "Neutral", round(max_prob * 100, 2), is_spam_pred
-
-    intent = intent_model.classes_[probs.argmax()]
-
-    # Standardize ML categories to Dashboard Dropdown labels
-    if intent in ["payment_issue", "delivery_issue"]:
-        intent = "Issue"
-    elif intent == "complaint":
-        intent = "Escalation"
-    else:
-        intent = intent.capitalize()
-
-    # 2. Predict Sentiment
-    sentiment = sentiment_model.predict(vec)[0].capitalize()
+    ml_intent = intent_model.classes_[probs.argmax()]
     
-    # 3. Predict Priority
-    priority = priority_model.predict(vec)[0].capitalize()
+    # 2. Advanced Heuristic Overrides (The "Very Best" logic)
+    # High-Priority Intent Patterns
+    refund_patterns = ['refund', 'money back', 'reimbursement', 'repay', 'full refund', 'chargeback', 'incorrect charge']
+    escalation_patterns = ['lawyer', 'attorney', 'sue', 'legal action', 'police', 'report you', 'unauthorized', 'stolen', 'fraud', 'scam']
+    safety_patterns = ['danger', 'hazard', 'fire', 'explode', 'burn', 'injury', 'hospital', 'poison', 'toxic', 'broken glass']
+    cancel_patterns = ['cancel my subscription', 'close my account', 'stop charging', 'unsubscribe immediately']
+
+    if any(p in text_lower for p in refund_patterns):
+        intent, priority, sentiment = "Refund", "High", "Negative"
+    elif any(p in text_lower for p in escalation_patterns):
+        intent, priority, sentiment = "Escalation", "High", "Negative"
+    elif any(p in text_lower for p in safety_patterns):
+        intent, priority, sentiment = "Issue", "High", "Negative"
+    elif any(p in text_lower for p in cancel_patterns):
+        intent, priority, sentiment = "Cancel", "High", "Neutral"
+    elif max_prob < 0.45:
+        # Fallback for low confidence
+        if '?' in text or any(w in text_lower for w in ['how', 'what', 'where', 'when', 'why']):
+            intent, priority, sentiment = "Query", "Low", "Neutral"
+        else:
+            intent, priority, sentiment = "Other", "Low", "Neutral"
+    else:
+        # Trust ML but clean up labels
+        intent = ml_intent
+        if intent in ["payment_issue", "delivery_issue"]:
+            intent = "Issue"
+        elif intent == "complaint":
+            intent = "Escalation"
+        else:
+            intent = intent.capitalize()
+            
+        sentiment = sentiment_model.predict(vec)[0].capitalize()
+        priority = priority_model.predict(vec)[0].capitalize()
+
+    # Final Polish: Contextual Priority Adjustments
+    if sentiment == "Negative" and priority == "Low":
+        priority = "Medium" # Angry customers are never low priority
+    if intent == "Escalation":
+        priority = "High"
 
     return intent, priority, sentiment, round(max_prob * 100, 2), is_spam_pred
 
@@ -331,7 +346,11 @@ def signup():
         db.session.commit()
 
         access_token = create_access_token(identity=username)
-        return jsonify({"message": "Signup successful", "access_token": access_token}), 201
+        return jsonify({
+            "message": "Signup successful", 
+            "access_token": access_token,
+            "username": username
+        }), 201
 
     except Exception as e:
         app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
@@ -376,7 +395,11 @@ def login():
             
             # Successful OAuth authorization on Flask side
             access_token = create_access_token(identity=user.username)
-            return jsonify({"message": "OAuth Login success", "access_token": access_token}), 200
+            return jsonify({
+                "message": "OAuth Login success", 
+                "access_token": access_token,
+                "username": user.username
+            }), 200
 
         # Normal Password login
         if not password:
@@ -391,7 +414,11 @@ def login():
                     return jsonify({"error": "Invalid 2FA code"}), 401
 
             access_token = create_access_token(identity=user.username)
-            return jsonify({"message": "Login success", "access_token": access_token}), 200
+            return jsonify({
+                "message": "Login success", 
+                "access_token": access_token,
+                "username": user.username
+            }), 200
 
         return jsonify({"error": "Invalid credentials"}), 401
     except Exception as e:
@@ -887,38 +914,62 @@ def submit_feedback():
 # CSV EXPORT ROUTE
 # -------------------------
 @app.route("/api/export/<user>")
-@jwt_required()  # ── Authorization: must be logged in to export
-@limiter.limit("10 per hour")  # Prevent bulk data scraping
+@jwt_required()
+@limiter.limit("10 per hour")
 def export_csv(user):
-    # ── Authorization: users can only export their own data ──
-    current_user = get_jwt_identity()
-    if current_user != user:
-        return jsonify({"error": "Unauthorized: you can only export your own data"}), 403
-
-    records = EmailHistory.query.filter_by(user=user).all()
-
-    # Generate CSV data
-    def generate():
-        data = io.StringIO()
-        writer = csv.writer(data)
+    """Securely export user's audit history as a downloadable CSV file."""
+    try:
+        # Resolve user identity (handle case where 'user' might be email instead of username)
+        current_identity = get_jwt_identity()
         
-        # Write header
-        writer.writerow(('Email Content', 'Intent', 'Sentiment', 'Priority'))
-        yield data.getvalue()
-        data.seek(0)
-        data.truncate(0)
-
+        # Verify ownership: current_identity must match the requested user or the owner of the email
+        target_user = User.query.filter((User.username == user) | (User.email == user)).first()
+        
+        if not target_user or (current_identity != target_user.username):
+            app.logger.warning(f"Unauthorized export attempt by {current_identity} for {user}")
+            return jsonify({"error": "Unauthorized: you can only export your own data"}), 403
+    
+        records = EmailHistory.query.filter_by(user=target_user.username).all()
+    
+        if not records:
+            return jsonify({"error": "No history records found to export"}), 404
+    
+        # Generate CSV data in memory
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        
+        # Write header with enriched columns
+        writer.writerow(['Record ID', 'Date', 'Email Content', 'Intent', 'Sentiment', 'Priority', 'Is Spam', 'User Feedback'])
+    
         # Write rows
         for r in records:
-            writer.writerow((r.email, r.intent, r.sentiment, r.priority))
-            yield data.getvalue()
-            data.seek(0)
-            data.truncate(0)
-
-    # Return as streaming response
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition", "attachment", filename="email_history.csv")
-    return response
+            writer.writerow([
+                str(r.id),
+                r.created_at.strftime("%Y-%m-%d %H:%M:%S") if r.created_at else "N/A",
+                str(r.email).replace('\n', ' ').strip()[:5000],  # Clean up and limit length
+                str(r.intent),
+                str(r.sentiment),
+                str(r.priority),
+                "Yes" if r.is_spam else "No",
+                str(r.user_feedback) if r.user_feedback else "None"
+            ])
+    
+        csv_data = output.getvalue()
+        output.close()
+    
+        # Return as robust file download response
+        from flask import make_response
+        response = make_response(csv_data)
+        response.headers["Content-Disposition"] = f"attachment; filename=email_audit_history_{target_user.username}.csv"
+        response.headers["Content-Type"] = "text/csv; charset=utf-8"
+        response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"Export CSV Error: {str(e)}", exc_info=True)
+        return jsonify({"error": "Export failed", "message": str(e)}), 500
 
 
 # -------------------------

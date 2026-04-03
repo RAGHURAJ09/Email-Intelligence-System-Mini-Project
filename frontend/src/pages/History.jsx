@@ -7,6 +7,7 @@ export default function History() {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Filtering & Pagination State
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,10 +20,74 @@ export default function History() {
   const itemsPerPage = 15;
   const user = localStorage.getItem("user");
 
+  const handleExportCSV = async () => {
+    if (!user) {
+      alert("Please log in to export CSV");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
+      const response = await fetch(`${API}/export/${encodeURIComponent(user)}`, { 
+        headers,
+        credentials: 'include'
+      });
+      
+      console.log('Export response status:', response.status);
+      
+      if (response.status === 401) {
+        alert("Session expired. Please log in again.");
+        window.location.href = '/login';
+        return;
+      }
+      
+      if (response.status === 403) {
+        alert("You can only export your own data.");
+        return;
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        alert(errorData.error || `Export failed with status ${response.status}`);
+        return;
+      }
+      
+      const blob = await response.blob();
+      console.log('Blob type:', blob.type, 'Blob size:', blob.size);
+      
+      if (blob.size === 0) {
+        alert("No data to export.");
+        setIsExporting(false);
+        return;
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'email_history.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Export failed. Please try again. Error: ' + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       setIsLoading(true);
-      fetch(`${API}/history/${encodeURIComponent(user)}`)
+      const token = localStorage.getItem('access_token');
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
+      fetch(`${API}/history/${encodeURIComponent(user)}`, { headers })
         .then(res => res.json())
         .then(data => setHistory(data))
         .catch(err => console.error("Failed to fetch history:", err))
@@ -85,9 +150,9 @@ export default function History() {
                 <span style={{ fontSize: '11px', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Total Records</span>
                 <span style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', lineHeight: '1' }}>{history.length}</span>
              </div>
-             <a href={`${API}/export/${encodeURIComponent(user)}`} download className="btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px' }}>
-                <span className="no-invert">⬇️</span> Export CSV Archive 
-             </a>
+              <button onClick={handleExportCSV} className="btn-primary" disabled={isExporting} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', cursor: isExporting ? 'not-allowed' : 'pointer', opacity: isExporting ? 0.6 : 1 }}>
+                 <span className="no-invert">⬇️</span> {isExporting ? 'Exporting...' : 'Export CSV Archive'}
+              </button>
         </div>
       </div>
 
