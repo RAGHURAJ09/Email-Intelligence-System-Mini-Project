@@ -18,19 +18,14 @@ from daytona_sdk import Daytona, DaytonaConfig
 
 load_dotenv()
 
-# -------------------------
-# Flask setup
-# -------------------------
+# Basic Flask configuration
 app = Flask(
     __name__,
     static_folder="../frontend/dist",
     static_url_path="/"
 )
 
-# -------------------------
-# CORS CONFIGURATION
-# Restrict to known frontend origins only
-# -------------------------
+# Allow frontend to access the API
 ALLOWED_ORIGINS = [
     "http://localhost:5173",   # Vite dev server
     "http://localhost:3000",   # Alt dev server
@@ -40,26 +35,18 @@ CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
 bcrypt = Bcrypt(app)
 
-# -------------------------
-# DAYTONA SETUP
-# Used for secure, isolated code execution
-# -------------------------
+# Setup Daytona for running code in a sandbox
 daytona_config = DaytonaConfig(api_key=os.getenv("DAYTONA_API_KEY"))
 daytona = Daytona(daytona_config)
 
-# -------------------------
-# RATE LIMITING
-# Global default: 200/day, 50/hour. Stricter limits applied per-route.
-# -------------------------
+# Setup rate limiting to prevent spamming the API
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
-# -------------------------
-# LOGGING & ERROR HANDLING
-# -------------------------
+# Error logging to file so I can debug crashes
 import logging
 from logging.handlers import RotatingFileHandler
 import traceback
@@ -108,23 +95,17 @@ def handle_exception(e):
     }), 500
 
 
-# -------------------------
-# JWT CONFIGURATION
-# -------------------------
+# Secret key for JWT auth tokens
 app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "customer-ai-super-secret-fallback")
 jwt = JWTManager(app)
 
-# -------------------------
-# DATABASE CONFIG
-# -------------------------
+# Connect to the PostgreSQL database on Supabase
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# -------------------------
-# MAIL CONFIGURATION
-# -------------------------
+# Config for sending emails via Gmail SMTP
 app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
 app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
 app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
@@ -133,9 +114,7 @@ app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME"))
 mail = Mail(app)
 
-# ------------------------
-# LOAD ML MODEL
-# ------------------------
+# Loading the trained ML model files
 with open("model.pkl", "rb") as f:
     models = pickle.load(f)
     intent_model = models["intent"]
@@ -151,9 +130,7 @@ import base64
 from io import BytesIO
 import string
 
-# ------------------------
-# DATABASE MODELS
-# ------------------------
+# Database tables for storage
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -184,7 +161,7 @@ class EmailHistory(db.Model):
 
 
 def get_detailed_feedback(intent, priority, sentiment):
-    """Generates rich, actionable insights based on classification."""
+    """Generate recommendations based on what the model found."""
     insights = []
     tone_descriptors = []
     urgency_reason = ""
@@ -244,10 +221,8 @@ def detect_spam_keywords(text):
 
 def analyze_email(text):
     """
-    Enhanced analysis engine: 
-    1. ML-based prediction as baseline.
-    2. Context-aware keyword overrides for high-stakes intents.
-    3. Sentiment-Priority correlation for better response suggestions.
+    Core function to categorize the email.
+    It uses the ML model first, but has some keyword checks for important stuff.
     """
     vec = vectorizer.transform([text])
     text_lower = text.lower()
@@ -265,8 +240,8 @@ def analyze_email(text):
     max_prob = max(probs)
     ml_intent = intent_model.classes_[probs.argmax()]
     
-    # 2. Advanced Heuristic Overrides (The "Very Best" logic)
-    # High-Priority Intent Patterns
+    # Use keywords to override ML if it's something really important (like a lawsuit or refund)
+    # This helps catch things the model might miss.
     refund_patterns = ['refund', 'money back', 'reimbursement', 'repay', 'full refund', 'chargeback', 'incorrect charge']
     escalation_patterns = ['lawyer', 'attorney', 'sue', 'legal action', 'police', 'report you', 'unauthorized', 'stolen', 'fraud', 'scam']
     safety_patterns = ['danger', 'hazard', 'fire', 'explode', 'burn', 'injury', 'hospital', 'poison', 'toxic', 'broken glass']

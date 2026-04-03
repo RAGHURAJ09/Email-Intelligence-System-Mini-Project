@@ -12,10 +12,10 @@ export default function Documentation() {
                 transition={{ duration: 0.5 }}
             >
                 <div style={{ marginBottom: '20px' }}>
-                    <button 
+                    <button
                         onClick={() => window.history.length > 1 ? window.history.back() : window.location.href = '/'}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '15px', fontWeight: '500', cursor: 'pointer', padding: 0 }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'} 
+                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'}
                         onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                     >
                         <span style={{ fontSize: '20px' }}>←</span> Back
@@ -90,7 +90,7 @@ export default function Documentation() {
                         <li style={{ marginBottom: '10px' }}><strong>User Input:</strong> The support agent pastes the customer email or headers into the React frontend.</li>
                         <li style={{ marginBottom: '10px' }}><strong>API Request:</strong> The frontend makes an asynchronous POST request to the <code>/api/analyze</code> or <code>/api/secure/header-analysis</code> endpoint.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Preprocessing:</strong> The backend cleans the text and passes it to the pre-loaded TF-IDF Vectorizer.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Prediction & Sandbox Layer:</strong> 
+                        <li style={{ marginBottom: '10px' }}><strong>Prediction & Sandbox Layer:</strong>
                             <ul style={{ listStyleType: 'circle', paddingLeft: '20px', marginTop: '5px' }}>
                                 <li><strong>ML Models:</strong> Predict Intent, Sentiment, Priority, and Spam status.</li>
                                 <li><strong>Daytona Sandbox:</strong> For sensitive header analysis, the backend spins up an isolated Daytona sandbox to execute security-check Python scripts securely.</li>
@@ -106,7 +106,7 @@ export default function Documentation() {
                 <section style={{ marginBottom: '40px' }}>
                     <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>4. Machine Learning Implementation</h2>
                     <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
-                        The core intelligence of this system lies in its Machine Learning pipeline. I gathered a dataset of over 2,000 simulated customer support tickets to train the models. The step-by-step process I followed:
+                        This was the most challenging part. I used a dataset of about 9500 support tickets I found to get things started. Here's how I did it:
                     </p>
                     <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
                         <li style={{ marginBottom: '10px' }}><strong>Data Preprocessing:</strong> Real-world text data is messy. I used Python's NLTK to clean the text by converting it to lowercase, removing punctuation, and filtering out common "stop words" (like 'the', 'is', 'at') that don't add meaning to intent.</li>
@@ -119,14 +119,7 @@ export default function Documentation() {
                                 <li><strong>Spam Model:</strong> Detects typical promotional or phishing spam independently of other intents.</li>
                             </ul>
                         </li>
-                        <li style={{ marginBottom: '10px' }}><strong>Model Evaluation (Realistic Metrics):</strong> To ensure the AI is reliable, I employed an 80/20 train-test split to evaluate the models on unseen data. The models achieved professional performance (avg. <strong>~97%</strong>) across all key metrics, ensuring robust generalization while maintaining audited variance:
-                            <ul style={{ listStyleType: 'circle', paddingLeft: '20px', marginTop: '10px' }}>
-                                <li><strong>Accuracy (~0.9738):</strong> Overall percentage of correct predictions.</li>
-                                <li><strong>Precision (~0.9648):</strong> High precision ensures false positives are minimized (meaning a normal query is rarely flagged as a High Priority refund).</li>
-                                <li><strong>Recall (~0.9738):</strong> High recall ensures false negatives are minimized (meaning critical issues are not incorrectly ignored).</li>
-                                <li><strong>F1 Score (~0.9693):</strong> A harmonized average of both Precision and Recall.</li>
-                            </ul>
-                        </li>
+                        <li style={{ marginBottom: '10px' }}><strong>Results & Reality Check:</strong> After training with an 80/20 split, I managed to get the accuracy up to around **97%**. I also checked things like Precision and F1 Score to make sure it wasn't just guessing. At the end of the day, it's pretty reliable at spotting the urgent stuff.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Confidence Thresholding & Heuristics:</strong> To prevent hallucinations, the system uses <code>predict_proba</code>. If confidence is below 55%, it defaults to heuristic triggers (e.g., checking for terms like 'refund' or 'urgent') to ensure accuracy.</li>
                         <li style={{ marginBottom: '10px' }}><strong>User Feedback Loop:</strong> Users can provide 'Helpful' or 'Not Helpful' feedback on results, which is stored to improve future model versions.</li>
                     </ul>

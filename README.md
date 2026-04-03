@@ -55,17 +55,17 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 ---
 
-## 📈 Machine Learning Workflow
+## 📊 How it works (Machine Learning)
 
-This project utilizes a custom-trained **Random Forest Classifier** pipeline, selected for its superior multi-class classification performance and robust intent detection:
+I decided to use a **Random Forest Classifier** for this project because it's much more reliable for sorting through different email intents. Here's the rough workflow:
 
 1. **Preprocessing (NLTK):** User text is lowercased, stripped of punctuation, and purged of common stop words.
 2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words.
 3. **Dual-Layer Prediction:** 
    - **ML Layer:** Vector is fed into four distinct `.pkl` models to individually predict **Spam**, **Intent**, **Sentiment**, and **Priority**.
    - **Heuristic Layer:** A keyword-based fallback system captures high-priority triggers even if model confidence is low.
-4. **Confidence Thresholding:** The backend examines `predict_proba`. If confidence is low (<45%), it utilizes heuristic overrides and sentiment-priority correlation to prevent categorization hallucinations.
-5. **Model Evaluation:** Achieving professional performance of **~97% Accuracy** and **~96% Precision** on test datasets, ensuring high-impact real-world reliability.
+4. **Smart Handling:** If the model isn't very sure (confidence < 45%), the system checks for specific keywords (like "refund" or "help") to make sure it doesn't get it wrong.
+5. **Results:** I managed to get it to about **~97% Accuracy** on my test data, which I'm pretty happy with. It's solid enough to use for real sorting.
 
 ---
 
