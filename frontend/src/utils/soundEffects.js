@@ -14,7 +14,7 @@ export const playSound = (type) => {
     const currentTime = audioCtx.currentTime;
 
     if (type === 'positive' || type === 'success') {
-        // Happy Arpeggio (Sudden pitch jumps to form a C Major chord)
+        // Sounds like a happy little jingle
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(523.25, currentTime);         // C5
         oscillator.frequency.setValueAtTime(659.25, currentTime + 0.12);  // E5
@@ -30,7 +30,7 @@ export const playSound = (type) => {
         oscillator.stop(currentTime + 0.65);
     }
     else if (type === 'neutral') {
-        // Quick, bouncy "water drop" (High to low pop)
+        // A little water drop sound
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(900, currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(300, currentTime + 0.1);
@@ -56,7 +56,7 @@ export const playSound = (type) => {
         oscillator.stop(currentTime + 0.4);
     }
     else if (type === 'high-priority') {
-        // Urgent double-beep
+        // Quick double beep for alerts
         oscillator.type = 'square';
         oscillator.frequency.setValueAtTime(800, currentTime);
 

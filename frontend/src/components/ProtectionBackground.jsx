@@ -18,9 +18,9 @@ const ProtectionBackground = () => {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Floating Orbs
+        // Set up some floating orbs for the background
         const orbs = [];
-        const orbCount = 15; // Few, large, subtle orbs
+        const orbCount = 15;
 
         class Orb {
             constructor() {
@@ -75,6 +75,7 @@ const ProtectionBackground = () => {
                 orbs[i].draw();
             }
 
+            // Reset global composite op
             ctx.globalCompositeOperation = 'source-over';
             animationFrameId = requestAnimationFrame(animate);
         };

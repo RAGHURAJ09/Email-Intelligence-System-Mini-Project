@@ -1,3 +1,4 @@
+// Helper file for sentiment sorting and styles
 export const SENTIMENT_ORDER = [
   "Very Positive",
   "Positive",

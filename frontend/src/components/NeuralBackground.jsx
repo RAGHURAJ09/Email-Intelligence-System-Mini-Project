@@ -5,7 +5,7 @@ const NeuralBackground = () => {
     const canvasRef = useRef(null);
     const { bgState } = useBackground();
 
-    // Store target colors in a ref to access inside the animation loop
+    // These are the colors for the particle lines
     const paletteRef = useRef({
         primary: '139, 92, 246', // Violet
         secondary: '6, 182, 212', // Cyan
@@ -49,9 +49,7 @@ const NeuralBackground = () => {
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // Center of screen
-            // Note: ctx.translate is stateful, need to be careful with resets. 
-            // Better to handle offset in draw logic or save/restore.
+            // Redraw everything when they resize
         };
 
         window.addEventListener('resize', resizeCanvas);
@@ -76,7 +74,7 @@ const NeuralBackground = () => {
                 this.vz = Math.random() * 3 + 1.5;
 
                 this.radius = Math.random() * 2 + 1;
-                // Assign a type instead of a hardcoded color
+                // Either violet or cyan
                 this.type = Math.random() > 0.6 ? 'primary' : 'secondary';
             }
 
