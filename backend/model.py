@@ -8,8 +8,8 @@ import pickle
 # Load dataset
 data = pd.read_csv("../dataset/emails.csv")
 
-# Create a synthetic 'spam' feature based on typical spam keywords for demonstration
-spam_keywords = 'buy|win|lottery|prize|click here|subscribe|urgent money|cash|free|guaranteed|cheap|discount|offer|promotion'
+# Create a synthetic 'spam' feature - narrowed down to be less aggressive
+spam_keywords = 'lottery|prize|click here|nigerian prince|win million|free prize|money fast|claim reward'
 data['is_spam'] = data['text'].str.lower().str.contains(spam_keywords).astype(int)
 
 # Features and targets

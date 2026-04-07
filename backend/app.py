@@ -15,6 +15,20 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 from daytona_sdk import Daytona, DaytonaConfig
+import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+# Download necessary NLTK data
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
 
 load_dotenv()
 
@@ -36,8 +50,16 @@ CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 bcrypt = Bcrypt(app)
 
 # Setup Daytona for running code in a sandbox
-daytona_config = DaytonaConfig(api_key=os.getenv("DAYTONA_API_KEY"))
-daytona = Daytona(daytona_config)
+daytona_api_key = os.getenv("DAYTONA_API_KEY")
+daytona = None
+if daytona_api_key:
+    try:
+        daytona_config = DaytonaConfig(api_key=daytona_api_key)
+        daytona = Daytona(daytona_config)
+    except Exception as e:
+        app.logger.error(f"Failed to initialize Daytona: {e}")
+else:
+    app.logger.warning("DAYTONA_API_KEY not found. Sandbox features will be disabled.")
 
 # Setup rate limiting to prevent spamming the API
 limiter = Limiter(
@@ -97,7 +119,16 @@ def handle_exception(e):
 
 # Secret key for JWT auth tokens
 app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "customer-ai-super-secret-fallback")
+# Make tokens last a long time (30 days) to prevent "Token has expired" errors during development
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 jwt = JWTManager(app)
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({
+        "error": "Unauthorized",
+        "message": "Token has expired. Please login again."
+    }), 401
 
 # Connect to the PostgreSQL database on Supabase
 
@@ -114,16 +145,34 @@ app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME"))
 mail = Mail(app)
 
-# Loading the trained ML model files
-with open("model.pkl", "rb") as f:
-    models = pickle.load(f)
-    intent_model = models["intent"]
-    sentiment_model = models["sentiment"]
-    priority_model = models["priority"]
-    spam_model = models.get("spam")
+# Initialize ML model variables as None in case they fail to load
+intent_model = sentiment_model = priority_model = vectorizer = None
+spam_model = spam_vectorizer = None
 
-with open("vectorizer.pkl", "rb") as f:
-    vectorizer = pickle.load(f)
+# Loading the ML models and vectorizers
+try:
+    with open("model.pkl", "rb") as f:
+        models = pickle.load(f)
+        intent_model = models.get("intent")
+        sentiment_model = models.get("sentiment")
+        priority_model = models.get("priority")
+
+    with open("vectorizer.pkl", "rb") as f:
+        vectorizer = pickle.load(f)
+
+    # Loading the standalone Spam model assets
+    if os.path.exists("spam_email.pkl") and os.path.exists("spam_vectorizer.pkl"):
+        with open("spam_email.pkl", "rb") as f:
+            spam_model = pickle.load(f)
+        with open("spam_vectorizer.pkl", "rb") as f:
+            spam_vectorizer = pickle.load(f)
+        app.logger.info("Standalone spam model and vectorizer loaded successfully")
+    else:
+        app.logger.warning("Spam email assets not found, using fallback detection")
+
+    app.logger.info("All ML models and vectorizers loaded successfully")
+except Exception as e:
+    app.logger.error(f"CRITICAL: Failed to load ML models: {str(e)}", exc_info=True)
 
 import pyotp
 import base64
@@ -201,6 +250,19 @@ def get_detailed_feedback(intent, priority, sentiment):
         "action_items": insights
     }
 
+# Initialize lemmatizer and stopwords for spam detection
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
+
+def preprocess_text(text):
+    """Clean and tokenize text for the improved spam model."""
+    text = text.lower()
+    text = ''.join([char for char in text if char not in string.punctuation])
+    text = re.sub(r'\d+', '', text)
+    tokens = text.split()
+    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+    return ' '.join(tokens)
+
 def detect_spam_keywords(text):
     """Robust keyword-based spam detection as fallback."""
     text_lower = text.lower()
@@ -214,34 +276,73 @@ def detect_spam_keywords(text):
         'double your money', 'click this link now', 'free-prize', 'prize-claim',
         'pharma', 'buy cheap', 'lowest price guarantee', 'no prescription needed',
         'urgent reply needed', 'dear beneficiary', 'unsubscribe from this list',
-        'you have won', 'selected as a lucky', 'activate your account immediately'
+        'you have won', 'selected as a lucky', 'activate your account immediately',
+        'lottery', 'winner', 'funds', 'inheritance', 'bonus', 'payday loan',
+        'weight loss', 'casino', 'investment opportunity', 'bank account suspended',
+        'account alert', 'security update', 're-verify', 'gift card', 'voucher',
+        'unlimited access', 'click here for details', 'private message',
+        'exclusive offer', 'member only', 'unsubscribe'
     ]
     spam_score = sum(1 for pattern in spam_patterns if pattern in text_lower)
-    return spam_score >= 2  # Flag if 2+ spam patterns found
+    return spam_score >= 1  # Lower threshold to catch more spam (from 2 down to 1)
 
 def analyze_email(text):
     """
     Core function to categorize the email.
-    It uses the ML model first, but has some keyword checks for important stuff.
+    Uses ML models with robust fallback to keyword-based logic.
     """
-    vec = vectorizer.transform([text])
     text_lower = text.lower()
     
     # 0. Predict Spam
     is_spam_pred = False
-    if spam_model:
-        is_spam_pred = bool(spam_model.predict(vec)[0])
-    # Keyword fallback for spam (always active)
+    if spam_model and spam_vectorizer:
+        try:
+            preprocessed_text = preprocess_text(text)
+            spam_vec = spam_vectorizer.transform([preprocessed_text])
+            prediction = spam_model.predict(spam_vec)[0]
+            # Model returns 1 for spam, 0 for ham.
+            is_spam_pred = bool(prediction == 1 or str(prediction).lower() == 'spam')
+        except Exception as e:
+            app.logger.error(f"Error in ML spam prediction: {e}")
+    
+    # Keyword fallback for spam (always active if ML misses it)
     if not is_spam_pred:
         is_spam_pred = detect_spam_keywords(text)
         
-    # 1. Base ML Predictions
-    probs = intent_model.predict_proba(vec)[0]
-    max_prob = max(probs)
-    ml_intent = intent_model.classes_[probs.argmax()]
-    
-    # Use keywords to override ML if it's something really important (like a lawsuit or refund)
-    # This helps catch things the model might miss.
+    # 1. Intent, Sentiment, Priority Analysis
+    # Default fallback values
+    intent, priority, sentiment = "Other", "Low", "Neutral"
+    confidence = 0.0
+
+    if vectorizer and intent_model and sentiment_model and priority_model:
+        try:
+            vec = vectorizer.transform([text])
+            probs = intent_model.predict_proba(vec)[0]
+            max_prob = max(probs)
+            confidence = round(max_prob * 100, 2)
+            ml_intent = intent_model.classes_[probs.argmax()]
+            
+            # Base ML predictions
+            sentiment = sentiment_model.predict(vec)[0].capitalize()
+            priority = priority_model.predict(vec)[0].capitalize()
+            intent = ml_intent
+            
+            # Map low-level model labels to UI labels
+            if intent in ["payment_issue", "delivery_issue"]:
+                intent = "Issue"
+            elif intent == "complaint":
+                intent = "Escalation"
+            else:
+                intent = intent.capitalize()
+        except Exception as e:
+             app.logger.error(f"Error in ML core prediction: {e}")
+    else:
+        # If models didn't load, use keywords for everything
+        if '?' in text or any(w in text_lower for w in ['how', 'what', 'where', 'when', 'why']):
+            intent = "Query"
+        app.logger.warning("Using keyword fallback only (Models not loaded)")
+
+    # 2. Keyword overrides (always active)
     refund_patterns = ['refund', 'money back', 'reimbursement', 'repay', 'full refund', 'chargeback', 'incorrect charge']
     escalation_patterns = ['lawyer', 'attorney', 'sue', 'legal action', 'police', 'report you', 'unauthorized', 'stolen', 'fraud', 'scam']
     safety_patterns = ['danger', 'hazard', 'fire', 'explode', 'burn', 'injury', 'hospital', 'poison', 'toxic', 'broken glass']
@@ -255,32 +356,14 @@ def analyze_email(text):
         intent, priority, sentiment = "Issue", "High", "Negative"
     elif any(p in text_lower for p in cancel_patterns):
         intent, priority, sentiment = "Cancel", "High", "Neutral"
-    elif max_prob < 0.45:
-        # Fallback for low confidence
-        if '?' in text or any(w in text_lower for w in ['how', 'what', 'where', 'when', 'why']):
-            intent, priority, sentiment = "Query", "Low", "Neutral"
-        else:
-            intent, priority, sentiment = "Other", "Low", "Neutral"
-    else:
-        # Trust ML but clean up labels
-        intent = ml_intent
-        if intent in ["payment_issue", "delivery_issue"]:
-            intent = "Issue"
-        elif intent == "complaint":
-            intent = "Escalation"
-        else:
-            intent = intent.capitalize()
-            
-        sentiment = sentiment_model.predict(vec)[0].capitalize()
-        priority = priority_model.predict(vec)[0].capitalize()
 
-    # Final Polish: Contextual Priority Adjustments
+    # 3. Final Adjustments
     if sentiment == "Negative" and priority == "Low":
-        priority = "Medium" # Angry customers are never low priority
+        priority = "Medium"
     if intent == "Escalation":
         priority = "High"
 
-    return intent, priority, sentiment, round(max_prob * 100, 2), is_spam_pred
+    return intent, priority, sentiment, confidence, is_spam_pred
 
 
 # -------------------------
@@ -609,7 +692,7 @@ def analyze():
         
         if is_spam:
             detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
-            intent = "Spam" # Set intent to Spam for clarity
+            intent = "Spam"  # Set intent to Spam for clarity in the UI
 
         result = {
             "email": email,

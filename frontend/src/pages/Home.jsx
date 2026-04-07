@@ -81,8 +81,13 @@ export default function Home() {
           setBgState(normalizeSentiment(response.sentiment));
         }
         
-        setNotification("✅ Analysis Complete!");
-        setTimeout(() => setNotification(""), 1500);
+        if (response.is_spam) {
+          setNotification("🚨 High Risk: Spam Detected!");
+          playSound('high-priority');
+        } else {
+          setNotification("✅ Analysis Complete!");
+        }
+        setTimeout(() => setNotification(""), 3500);
 
         // Scroll to result slightly
         setTimeout(() => {
