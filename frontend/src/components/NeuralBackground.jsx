@@ -13,13 +13,13 @@ const NeuralBackground = () => {
     });
 
     useEffect(() => {
-        if (bgState === 'Negative') {
+        if (bgState === 'negative') {
             paletteRef.current = {
                 primary: '239, 68, 68',   // Red-500
                 secondary: '185, 28, 28',  // Red-700
                 glow: '40, 10, 10'
             };
-        } else if (bgState === 'Positive') {
+        } else if (bgState === 'positive') {
             paletteRef.current = {
                 primary: '34, 197, 94',   // Green-500
                 secondary: '21, 128, 61',  // Green-700

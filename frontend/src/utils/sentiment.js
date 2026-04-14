@@ -60,3 +60,33 @@ export function getSentimentVisual(sentiment) {
   const normalized = normalizeSentiment(sentiment);
   return styleMap[normalized] || styleMap["Neutral"];
 }
+
+// Get background color based on sentiment for animation
+export function getSentimentBackgroundColor(sentiment) {
+  const normalized = (sentiment || "Neutral").toString().toLowerCase();
+  
+  // Negative = Red
+  if (normalized.includes("negative")) {
+    return {
+      gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.08) 50%, rgba(239, 68, 68, 0.15) 100%)",
+      glowColor: "rgba(239, 68, 68, 0.3)",
+      name: "negative"
+    };
+  }
+  
+  // Positive = Green
+  if (normalized.includes("positive")) {
+    return {
+      gradient: "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 50%, rgba(16, 185, 129, 0.15) 100%)",
+      glowColor: "rgba(16, 185, 129, 0.3)",
+      name: "positive"
+    };
+  }
+  
+  // Neutral = Gray/Default
+  return {
+    gradient: "linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(59, 130, 246, 0.06) 50%, rgba(139, 92, 246, 0.12) 100%)",
+    glowColor: "rgba(99, 102, 241, 0.2)",
+    name: "neutral"
+  };
+}

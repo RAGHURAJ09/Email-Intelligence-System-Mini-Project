@@ -75,10 +75,18 @@ export default function Home() {
         // Play smart real-time audio feedback based on analysis logic
         if (response.priority === 'High') {
           playSound('high-priority');
-        } else if (response.sentiment) {
-          const tone = sentimentTone(response.sentiment);
-          playSound(tone === 'mixed' ? 'neutral' : tone);
-          setBgState(normalizeSentiment(response.sentiment));
+        }
+        
+        // ALWAYS check sentiment for background color (independent of priority)
+        if (response.sentiment) {
+          const sent = response.sentiment.toLowerCase();
+          if (sent.includes('neg')) {
+            setBgState('negative');
+          } else if (sent.includes('pos')) {
+            setBgState('positive');
+          } else {
+            setBgState('neutral');
+          }
         }
         
         if (response.is_spam) {
