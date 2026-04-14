@@ -17,9 +17,11 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 ## ✨ Core Features
 
-* **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Technical Support, Query) reducing manual sorting time.
+* **🧠 Intelligent Triage:** Automatically classifies emails into categories (Refund, Feedback, Escalation, Issue, Query, Spam, Cancel) reducing manual sorting time.
 * **😡 Sentiment Analysis:** Detects the emotional tone of the email (Positive, Negative, Neutral) to gauge customer satisfaction instantly.
+* **🎯 Dynamic Confidence Score:** Real-time confidence percentage (60-99%) based on keyword matching and ML probability.
 * **🚨 Priority & Spam Flagging:** Dual-layer AI/Heuristic system to tag emails (High, Medium, Low) and aggressively filter out promotional spam or phishing.
+* **🎨 Emotional UI:** Background animation changes color based on sentiment (Red=Negative, Green=Positive, Purple=Neutral).
 * **🛡️ Secure Sandbox Analysis:** Integrated **Daytona API** to execute isolated Python scripts for deep header analysis, detecting malicious tracking pixels or suspicious X-headers.
 * **🔒 Professional Security:** Robust JWT-based authentication with `bcrypt` hashing, Google OAuth 2.0 integration, and TOTP-based Two-Factor Authentication (2FA).
 * **🛡️ Security Hardening:** Implemented `flask-limiter` for granular rate-limiting and identity verification checks to prevent unauthorized data access between users.
@@ -37,7 +39,7 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 **Frontend Interface:**
 * **Framework:** React.js (Vite)
 * **Styling:** Custom CSS (Dark/Neon Glassmorphism Theme)
-* **Animation:** Framer Motion
+* **Animation:** Framer Motion, Canvas-based Neural Background
 * **Routing:** React Router DOM
 
 **Backend API:**
@@ -55,17 +57,32 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 ---
 
-## 📊 How it works (Machine Learning)
+## 📊 Classification System
 
-I decided to use a **Random Forest Classifier** for this project because it's much more reliable for sorting through different email intents. Here's the rough workflow:
+### Intent Types
+| Intent | Keywords | Priority | Sentiment |
+|--------|---------|----------|----------|
+| **Refund** | refund, money back, chargeback, overcharged | High | Negative |
+| **Cancel** | cancel, unsubscribe, close account | High | Neutral |
+| **Escalation** | lawyer, fraud, scam, legal action | High | Negative |
+| **Spam** | congratulations, lucky winner, prize, click link | High | Negative |
+| **Feedback** | amazing, great, thank, terrible, disappointed | Low/Medium | Positive/Negative |
+| **Issue** | broken, damaged, not working, error | Medium | Negative |
+| **Query** | how, what, can i, question | Low | Neutral |
 
-1. **Preprocessing (NLTK):** User text is lowercased, stripped of punctuation, and purged of common stop words.
-2. **Vectorization:** Cleaned text is transformed via a `TfidfVectorizer` to highlight contextually critical words.
-3. **Dual-Layer Prediction:** 
-   - **ML Layer:** Vector is fed into four distinct `.pkl` models to individually predict **Spam**, **Intent**, **Sentiment**, and **Priority**.
-   - **Heuristic Layer:** A keyword-based fallback system captures high-priority triggers even if model confidence is low.
-4. **Smart Handling:** If the model isn't very sure (confidence < 45%), the system checks for specific keywords (like "refund" or "help") to make sure it doesn't get it wrong.
-5. **Results:** I managed to get it to about **~97% Accuracy** on my test data, which I'm pretty happy with. It's solid enough to use for real sorting.
+### Confidence Score Calculation
+- **More keyword matches = higher confidence**
+- Range: 60% - 99%
+- Refund/Escalation: 90-99%
+- Feedback/Spam: 75-95%
+- Query: 60-85%
+
+### Sentiment-Based UI
+| Sentiment | Background Color | Animation |
+|----------|--------------|----------|
+| **Positive** | 🟢 Green | Green particles |
+| **Negative** | 🔴 Red | Red particles |
+| **Neutral** | 🟣 Purple | Purple/Cyan particles |
 
 ---
 
@@ -78,6 +95,8 @@ Customer-Email-Intelligence-System/
 │   ├── app.py                   # Main Flask Application & API Routes
 │   ├── model.pkl                # Trained Scikit-Learn Models (Intent/Priority/Sentiment)
 │   ├── vectorizer.pkl           # Trained TF-IDF Text Vectorizer
+│   ├── spam_email.pkl           # Spam Detection Model
+│   ├── spam_vectorizer.pkl       # Spam Vectorizer
 │   ├── requirements.txt         # Python dependencies
 │   └── .env                     # Database URIs & Secret Keys
 │
@@ -85,11 +104,15 @@ Customer-Email-Intelligence-System/
 │   ├── src/
 │   │   ├── components/          # Reusable UI Elements (Navbar, Hero, Buttons)
 │   │   ├── pages/               # Main Route Views (Home, Login, Signup, Documentation)
-│   │   ├── utils/               # Helpers (Supabase client, Sound Effects)
+│   │   ├── utils/               # Helpers (Supabase client, Sound Effects, Sentiment)
+│   │   ├── context/             # Background Context (Sentiment-based colors)
 │   │   ├── App.jsx              # React Router Entry Matrix
 │   │   └── index.css            # Global CSS styling & design system
 │   ├── package.json             # NPM dependencies
 │   └── vite.config.js
+│
+├── dataset/
+│   └── emails.csv              # Training data
 │
 └── README.md
 ```

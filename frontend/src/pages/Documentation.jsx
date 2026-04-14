@@ -155,11 +155,76 @@ export default function Documentation() {
                         <li style={{ marginBottom: '10px' }}><strong>Two-Factor Authentication (2FA):</strong> Integrating `pyotp` and QR codes to provide an optional hardware-level security layer for all accounts.</li>
                         <li style={{ marginBottom: '10px' }}><strong>Profile & Identity Management:</strong> Comprehensive user profiles allowing for custom avatars, bios, and synchronized Google/Local identity management.</li>
                         <li style={{ marginBottom: '10px' }}><strong>API Rate Limiting:</strong> Implementation of `flask-limiter` to protect ML endpoints from brute-force attacks and resource exhaustion.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Dynamic Confidence Scoring:</strong> Real-time confidence percentages (60-99%) calculated based on keyword match count - more keywords = higher confidence.</li>
+                        <li style={{ marginBottom: '10px' }}><strong>Sentiment-Based UI:</strong> Neural background animation changes color dynamically: <span style={{color:'#ef4444'}}>Red for Negative</span>, <span style={{color:'#10b981'}}>Green for Positive</span>, <span style={{color:'#6366f1'}}>Purple for Neutral</span> emails.</li>
                     </ul>
                 </section>
 
                 <section style={{ marginBottom: '40px' }}>
-                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>8. Database Schema</h2>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>8. Classification Reference</h2>
+                    <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
+                        Email classification system with keyword-based detection:
+                    </p>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--text-muted)', fontSize: '1.05rem' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
+                                    <th style={{ padding: '10px', color: '#fff' }}>Intent</th>
+                                    <th style={{ padding: '10px', color: '#fff' }}>Keywords</th>
+                                    <th style={{ padding: '10px', color: '#fff' }}>Priority</th>
+                                    <th style={{ padding: '10px', color: '#fff' }}>Sentiment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Spam</td>
+                                    <td style={{ padding: '10px' }}>congratulations, prize, winner, click link, claim, not a scam</td>
+                                    <td style={{ padding: '10px' }}>High</td>
+                                    <td style={{ padding: '10px', color: '#ef4444' }}>Negative</td>
+                                </tr>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Refund</td>
+                                    <td style={{ padding: '10px' }}>refund, money back, chargeback, overcharged</td>
+                                    <td style={{ padding: '10px' }}>High</td>
+                                    <td style={{ padding: '10px', color: '#ef4444' }}>Negative</td>
+                                </tr>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Cancel</td>
+                                    <td style={{ padding: '10px' }}>cancel, unsubscribe, close account</td>
+                                    <td style={{ padding: '10px' }}>High</td>
+                                    <td style={{ padding: '10px' }}>Neutral</td>
+                                </tr>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Escalation</td>
+                                    <td style={{ padding: '10px' }}>lawyer, fraud, scam, legal action, consumer court</td>
+                                    <td style={{ padding: '10px' }}>High</td>
+                                    <td style={{ padding: '10px', color: '#ef4444' }}>Negative</td>
+                                </tr>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Feedback</td>
+                                    <td style={{ padding: '10px' }}>amazing, great, thank, terrible, disappointed</td>
+                                    <td style={{ padding: '10px' }}>Low/Medium</td>
+                                    <td style={{ padding: '10px' }}>Positive/Negative</td>
+                                </tr>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Issue</td>
+                                    <td style={{ padding: '10px' }}>broken, damaged, not working, error</td>
+                                    <td style={{ padding: '10px' }}>Medium</td>
+                                    <td style={{ padding: '10px', color: '#ef4444' }}>Negative</td>
+                                </tr>
+                                <tr>
+                                    <td style={{ padding: '10px', fontWeight: 'bold' }}>Query</td>
+                                    <td style={{ padding: '10px' }}>how, what, can i, question</td>
+                                    <td style={{ padding: '10px' }}>Low</td>
+                                    <td style={{ padding: '10px' }}>Neutral</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section style={{ marginBottom: '40px' }}>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>9. Database Schema</h2>
                     <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
                         I created two main tables using Flask-SQLAlchemy, which are now hosted globally via Supabase, to manage authentication and history:
                     </p>
@@ -189,7 +254,7 @@ export default function Documentation() {
                 </section>
 
                 <section style={{ marginBottom: '40px' }}>
-                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>9. Future Exploration</h2>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>10. Future Exploration</h2>
                     <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: '1.7', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
                         <li style={{ marginBottom: '10px' }}>Integrating a Large Language Model (LLM) for generalized conversational flow and reasoning.</li>
                         <li style={{ marginBottom: '10px' }}>Connecting directly to a real Gmail inbox using the Gmail API to pull unread emails automatically via Webhooks.</li>
@@ -198,7 +263,7 @@ export default function Documentation() {
                 </section>
 
                 <section style={{ marginBottom: '20px' }}>
-                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>10. Conclusion</h2>
+                    <h2 style={{ color: 'var(--primary)', marginBottom: '15px' }}>11. Conclusion</h2>
                     <p style={{ lineHeight: '1.7', fontSize: '1.1rem', color: 'var(--text-muted)' }}>
                         Through this project, I successfully learned how to integrate Machine Learning models within a modern web application stack. By automating the triage process, this Email Intelligence System demonstrates how AI can minimize manual effort in customer support pipelines and enable agents to react to critical situations much faster.
                     </p>
