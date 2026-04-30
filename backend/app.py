@@ -45,15 +45,18 @@ except ImportError:
     CELERY_AVAILABLE = False
     celery_app = None
 
-# Download necessary NLTK data
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet')
+# Download necessary NLTK data (Skipped on Render to prevent runtime fetch)
+if not os.environ.get('RENDER'):
+    try:
+        nltk.data.find('corpora/stopwords')
+    except LookupError:
+        nltk.download('stopwords')
+    try:
+        nltk.data.find('corpora/wordnet')
+    except LookupError:
+        nltk.download('wordnet')
+else:
+    print("Running on Render: Skipping automatic NLTK downloads (ensure data is pre-installed).")
 
 load_dotenv()
 
