@@ -14,12 +14,30 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
-from daytona_sdk import Daytona, DaytonaConfig
 import re
 import random
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+import os
+import pickle
+
+try:
+    import redis
+    from celery import Celery
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    celery_app = Celery("email_ai", broker=redis_url, backend=redis_url)
+    celery_app.conf.update(
+        task_serializer="json",
+        accept_content=["json"],
+        result_serializer="json",
+        timezone="UTC",
+        enable_utc=True,
+    )
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+    celery_app = None
 
 # Download necessary NLTK data
 try:
@@ -49,18 +67,6 @@ ALLOWED_ORIGINS = [
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
 bcrypt = Bcrypt(app)
-
-# Setup Daytona for running code in a sandbox
-daytona_api_key = os.getenv("DAYTONA_API_KEY")
-daytona = None
-if daytona_api_key:
-    try:
-        daytona_config = DaytonaConfig(api_key=daytona_api_key)
-        daytona = Daytona(daytona_config)
-    except Exception as e:
-        app.logger.error(f"Failed to initialize Daytona: {e}")
-else:
-    app.logger.warning("DAYTONA_API_KEY not found. Sandbox features will be disabled.")
 
 # Setup rate limiting to prevent spamming the API
 limiter = Limiter(
@@ -100,12 +106,16 @@ def forbidden(error):
     app.logger.warning("Forbidden access attempt")
     return jsonify({"error": "Forbidden", "message": "You don't have permission to access this resource."}), 403
 
+@app.route('/')
+def index():
+    return send_from_directory(app.static_folder, 'index.html')
+
 @app.errorhandler(404)
 def not_found(error):
     if request.path.startswith('/api/'):
         app.logger.warning(f"Not Found: {request.path}")
         return jsonify({"error": "Not Found", "message": "The requested resource could not be found."}), 404
-    return send_from_directory(app.static_folder, "index.html")
+    return send_from_directory(app.static_folder, "index.html"), 200
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -208,6 +218,40 @@ class EmailHistory(db.Model):
     is_spam = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_feedback = db.Column(db.String(10), nullable=True)  # 'helpful' or 'not_helpful'
+
+
+class Classification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email_id = db.Column(db.String(100), nullable=False, index=True)
+    category = db.Column(db.String(50), nullable=False)
+    confidence = db.Column(db.Float, nullable=False)
+    processed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    mode = db.Column(db.String(20), nullable=False)  # 'realtime' or 'batch'
+
+    def __init__(self, **kwargs):
+        super(Classification, self).__init__(**kwargs)
+
+
+class SentimentFeedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email_id = db.Column(db.String(100), nullable=False)
+    predicted_sentiment = db.Column(db.String(20), nullable=False)
+    correct_sentiment = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super(SentimentFeedback, self).__init__(**kwargs)
+
+
+class RetrainLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    triggered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    feedback_count = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # 'triggered', 'completed', 'failed'
+
+    def __init__(self, **kwargs):
+        super(RetrainLog, self).__init__(**kwargs)
 
 
 def get_detailed_feedback(intent, priority, sentiment):
@@ -610,6 +654,7 @@ def login():
 
 @app.route("/api/2fa/setup/<username>", methods=["GET"])
 def setup_2fa(username):
+    """Generate a 2FA secret and return the provisioning QR code URI."""
     try:
         user = User.query.filter_by(username=username).first()
         if not user:
@@ -647,6 +692,7 @@ def setup_2fa(username):
 @app.route("/api/2fa/verify", methods=["POST"])
 @limiter.limit("10 per hour")  # Prevent OTP brute-force
 def verify_2fa():
+    """Verify the 2FA OTP and enable 2FA for the user."""
     try:
         if not request.is_json:
             return jsonify({"error": "Content-Type must be application/json"}), 415
@@ -679,6 +725,7 @@ def verify_2fa():
 
 @app.route("/api/2fa/disable", methods=["POST"])
 def disable_2fa():
+    """Disable 2FA for the user."""
     try:
         data = request.json
         username = data.get("username")
@@ -819,6 +866,17 @@ def analyze():
             detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
             intent = "Spam"  # Set intent to Spam for clarity in the UI
 
+        record = EmailHistory(
+            user=user,
+            email=email,
+            intent=intent,
+            priority=priority,
+            sentiment=sentiment,
+            is_spam=is_spam
+        )
+        db.session.add(record)
+        db.session.commit()
+
         result = {
             "email": email,
             "intent": intent,
@@ -826,21 +884,13 @@ def analyze():
             "sentiment": sentiment,
             "confidence": confidence,
             "is_spam": is_spam,
-            "detailed_feedback": detailed_feedback
+            "detailed_feedback": detailed_feedback,
+            "mode": "batch",
+            "analyzed_at": datetime.utcnow().isoformat(),
+            "feedback_url": f"/api/feedback/{record.id}"
         }
 
-        if user:
-            record = EmailHistory(
-                user=user,
-                email=email,
-                intent=intent,
-                priority=priority,
-                sentiment=sentiment,
-                is_spam=is_spam
-            )
-            db.session.add(record)
-            db.session.commit()
-            result["record_id"] = record.id  # Return record ID for feedback
+        result["record_id"] = record.id
 
         return jsonify(result), 200
 
@@ -848,58 +898,202 @@ def analyze():
         app.logger.error(f"Error during email analysis: {e}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "message": "Failed to analyze email due to an internal error."}), 500
 
-# -------------------------
-# SECURE DAYTONA EXECUTION
-# -------------------------
-@app.route("/api/secure/header-analysis", methods=["POST"])
-@jwt_required()
-def secure_header_analysis():
-    """
-    Experimental: Uses Daytona to spin up a secure sandbox and run a 
-    Python script to analyze email headers for malicious tracking pixels.
-    """
-    try:
-        data = request.json
-        raw_headers = data.get("headers", "")
-        
-        if not raw_headers:
-            return jsonify({"error": "No headers provided"}), 400
 
-        sandbox = daytona.create()
+# -------------------------
+# REALTIME CLASSIFICATION
+# -------------------------
+@app.route("/api/classify", methods=["POST"])
+@jwt_required()
+@limiter.limit("30 per hour")
+def classify_email_realtime():
+    """Realtime email classification triggered on email arrival."""
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
+        data = request.json
+        if not data or not data.get("email"):
+            return jsonify({"error": "Email content is required"}), 400
+
+        email = data.get("email", "").strip()
+        email_id = data.get("email_id")
+
+        if len(email) < 10:
+            return jsonify({"error": "Email content is too short (min 10 characters)"}), 400
+        if len(email) > 10000:
+            return jsonify({"error": "Email content is too long (max 10,000 characters)"}), 400
+
+        user = get_jwt_identity()
         
-        try:
-            # Script to run inside the sandbox
-            analysis_script = f"""
-import json
-headers = {json.dumps(raw_headers)}
-# Look for common tracking pixel patterns or suspicious X-headers
-report = {{
-    "tracking_pixels_detected": "pixel" in headers.lower() or "tracker" in headers.lower(),
-    "suspicious_headers": [h for h in headers.split('\\n') if 'x-spy' in h.lower()],
-    "status": "Securely analyzed in Daytona Sandbox"
-}}
-print(json.dumps(report))
-            """
-            
-            # Execute the script in the sandbox safely
-            response = sandbox.process.code_run(analysis_script)
-            report_data = json.loads(response.result)
-            sandbox_id = sandbox.id
-            
-        finally:
+        if not email_id:
+            email_id = f"email_{int(datetime.utcnow().timestamp() * 1000)}"
+
+        for attempt in range(3):
             try:
-                daytona.delete(sandbox)
-            except Exception as cleanup_err:
-                app.logger.error(f"Failed to delete Daytona Sandbox {sandbox.id}: {cleanup_err}")
+                intent, priority, sentiment, confidence, is_spam = analyze_email(email)
                 
+                result = {
+                    "email_id": email_id,
+                    "category": intent,
+                    "confidence": confidence,
+                    "processed_at": datetime.utcnow().isoformat(),
+                    "mode": "realtime",
+                    "intent": intent,
+                    "priority": priority,
+                    "sentiment": sentiment,
+                    "is_spam": is_spam,
+                    "feedback_url": f"/api/feedback/{email_id}"
+                }
+                
+                try:
+                    classification = Classification(
+                        email_id=email_id,
+                        category=intent,
+                        confidence=confidence,
+                        processed_at=datetime.utcnow(),
+                        mode="realtime"
+                    )
+                    db.session.add(classification)
+                    db.session.commit()
+                except Exception as db_err:
+                    app.logger.warning(f"Failed to save classification: {db_err}")
+
+                record = EmailHistory(
+                    user=user,
+                    email=email,
+                    intent=intent,
+                    priority=priority,
+                    sentiment=sentiment,
+                    is_spam=is_spam
+                )
+                db.session.add(record)
+                db.session.commit()
+                result["record_id"] = record.id
+
+                return jsonify(result), 200
+                
+            except Exception as inner_e:
+                if attempt == 2:
+                    app.logger.error(f"Classification failed after 3 attempts: {inner_e}", exc_info=True)
+                    return jsonify({"error": "Internal Server Error", "message": f"Classification failed: {str(inner_e)}"}), 500
+                import time
+                time.sleep(0.5 * (attempt + 1))
+
+    except Exception as e:
+        app.logger.error(f"Error in realtime classification: {e}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "Failed to classify email."}), 500
+
+
+# -------------------------
+# SENTIMENT FEEDBACK
+# -------------------------
+@app.route("/api/feedback", methods=["POST"])
+@jwt_required()
+@limiter.limit("60 per hour")
+def submit_sentiment_feedback():
+    """Record user's sentiment correction for feedback loop."""
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
+        data = request.json
+        email_id = data.get("email_id")
+        predicted_sentiment = data.get("predicted_sentiment")
+        correct_sentiment = data.get("correct_sentiment")
+        user_id = data.get("user_id")
+
+        if not email_id or not predicted_sentiment or not correct_sentiment:
+            return jsonify({"error": "Missing required fields: email_id, predicted_sentiment, correct_sentiment"}), 400
+
+        valid_sentiments = ["Positive", "Negative", "Neutral"]
+        if predicted_sentiment.capitalize() not in valid_sentiments:
+            return jsonify({"error": f"Invalid predicted_sentiment. Must be one of: {valid_sentiments}"}), 400
+        if correct_sentiment.capitalize() not in valid_sentiments:
+            return jsonify({"error": f"Invalid correct_sentiment. Must be one of: {valid_sentiments}"}), 400
+
+        feedback = SentimentFeedback(
+            email_id=email_id,
+            predicted_sentiment=predicted_sentiment.capitalize(),
+            correct_sentiment=correct_sentiment.capitalize(),
+            user_id=user_id or get_jwt_identity()
+        )
+        db.session.add(feedback)
+        db.session.commit()
+
+        feedback_count = SentimentFeedback.query.count()
+        
+        if feedback_count % 100 == 0:
+            try:
+                from tasks import retrain_model_task
+                retrain_model_task.delay(feedback_count)
+                try:
+                    retrain_log = RetrainLog(
+                        feedback_count=feedback_count,
+                        status="triggered"
+                    )
+                    db.session.add(retrain_log)
+                    db.session.commit()
+                except:
+                    pass
+            except Exception as retrain_err:
+                app.logger.warning(f"Failed to trigger retrain task: {retrain_err}")
+
         return jsonify({
-            "report": report_data,
-            "sandbox_id": sandbox_id
+            "status": "recorded",
+            "email_id": email_id,
+            "timestamp": datetime.utcnow().isoformat()
         }), 200
 
     except Exception as e:
-        app.logger.error(f"Daytona Execution Error: {str(e)}")
-        return jsonify({"error": "Sandbox execution failed", "message": str(e)}), 500
+        app.logger.error(f"Error in sentiment feedback: {e}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "Failed to record feedback."}), 500
+
+
+@app.route("/api/feedback/stats", methods=["GET"])
+@jwt_required()
+def get_feedback_stats():
+    """Get feedback statistics for model accuracy."""
+    try:
+        total_feedback = SentimentFeedback.query.count()
+        
+        if total_feedback == 0:
+            return jsonify({
+                "total_feedback": 0,
+                "correct_predictions": 0,
+                "accuracy_rate": 0,
+                "breakdown": {}
+            }), 200
+
+        correct_count = SentimentFeedback.query.filter(
+            SentimentFeedback.predicted_sentiment == SentimentFeedback.correct_sentiment
+        ).count()
+        
+        accuracy_rate = round((correct_count / total_feedback) * 100, 2) if total_feedback > 0 else 0
+        
+        breakdown = {}
+        sentiments = ["Positive", "Negative", "Neutral"]
+        for sent in sentiments:
+            total = SentimentFeedback.query.filter_by(correct_sentiment=sent).count()
+            correct = SentimentFeedback.query.filter_by(
+                correct_sentiment=sent,
+                predicted_sentiment=sent
+            ).count()
+            breakdown[sent] = {
+                "total": total,
+                "correct": correct,
+                "accuracy": round((correct / total) * 100, 2) if total > 0 else 0
+            }
+
+        return jsonify({
+            "total_feedback": total_feedback,
+            "correct_predictions": correct_count,
+            "accuracy_rate": accuracy_rate,
+            "breakdown": breakdown
+        }), 200
+
+    except Exception as e:
+        app.logger.error(f"Error in feedback stats: {e}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "Failed to get stats."}), 500
 
 
 # -------------------------
@@ -946,6 +1140,7 @@ def get_history(user):
 @app.route("/api/admin/history", methods=["GET"])
 @jwt_required()
 def get_admin_history():
+    """Retrieve global email analysis history for admin auditing."""
     try:
         current_identity = get_jwt_identity()
         if current_identity != "admin":
@@ -973,6 +1168,7 @@ def get_admin_history():
 @app.route("/api/user/details/<user_id>", methods=["GET"])
 @jwt_required(optional=True)
 def get_user_details(user_id):
+    """Retrieve user profile details including 2FA status."""
     try:
         user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
         if not user:
@@ -999,6 +1195,7 @@ def get_user_details(user_id):
 @app.route("/api/user/details/<user_id>", methods=["PUT"])
 @jwt_required(optional=True)
 def update_user_details(user_id):
+    """Update user profile details such as name, bio, and profile picture."""
     try:
         user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
 
@@ -1030,6 +1227,7 @@ def update_user_details(user_id):
 @app.route("/api/user/password", methods=["PUT"])
 @jwt_required()
 def update_user_password():
+    """Change the user password with verification of the current password."""
     try:
         current_identity = get_jwt_identity()
         user = User.query.filter_by(username=current_identity).first()
@@ -1161,6 +1359,7 @@ def export_csv(user):
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve(path):
+    """Serve the unified frontend application from the backend."""
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
@@ -1176,6 +1375,7 @@ def serve(path):
 # -------------------------
 @app.route("/api/generate-response", methods=["POST"])
 def generate_response():
+    """Generate an AI contextual response draft based on intent, sentiment, and priority."""
     data = request.json
     intent = data.get("intent", "").lower()
     sentiment = data.get("sentiment", "").lower()
@@ -1297,6 +1497,46 @@ if __name__ == "__main__":
             print("✅ DB migration complete.")
         except Exception as e:
             app.logger.warning(f"Migration note: {e}")
+        
+        # Create new tables for classifications and feedback
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text('''
+                    CREATE TABLE IF NOT EXISTS classification (
+                        id SERIAL PRIMARY KEY,
+                        email_id VARCHAR(100) NOT NULL,
+                        category VARCHAR(50) NOT NULL,
+                        confidence FLOAT NOT NULL,
+                        processed_at TIMESTAMP DEFAULT now(),
+                        mode VARCHAR(20) NOT NULL
+                    )
+                '''))
+                conn.execute(text('''
+                    CREATE INDEX IF NOT EXISTS idx_classification_email_id ON classification(email_id)
+                '''))
+                conn.execute(text('''
+                    CREATE TABLE IF NOT EXISTS sentiment_feedback (
+                        id SERIAL PRIMARY KEY,
+                        email_id VARCHAR(100) NOT NULL,
+                        predicted_sentiment VARCHAR(20) NOT NULL,
+                        correct_sentiment VARCHAR(20) NOT NULL,
+                        user_id VARCHAR(100),
+                        created_at TIMESTAMP DEFAULT now()
+                    )
+                '''))
+                conn.execute(text('''
+                    CREATE TABLE IF NOT EXISTS retrain_log (
+                        id SERIAL PRIMARY KEY,
+                        triggered_at TIMESTAMP DEFAULT now(),
+                        feedback_count INTEGER NOT NULL,
+                        status VARCHAR(20) NOT NULL
+                    )
+                '''))
+                conn.commit()
+            print("✅ New tables created successfully.")
+        except Exception as e:
+            app.logger.warning(f"New tables note: {e}")
     app.run(debug=True)
 
 

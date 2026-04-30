@@ -114,18 +114,45 @@ export async function exportCSV(user) {
   return res; // Returns raw response (streaming CSV)
 }
 
-// ── Daytona Sandbox (JWT required) ──
-export async function secureHeaderAnalysis(headersText) {
+
+export default API;
+
+export async function classifyRealtime(email, emailId) {
   const token = localStorage.getItem('access_token');
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${API}/secure/header-analysis`, {
+  
+  const res = await fetch(`${API}/classify`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ headers: headersText })
+    body: JSON.stringify({ email, email_id: emailId })
   });
   return res.json();
 }
 
-export default API;
+export async function submitSentimentFeedback(emailId, predictedSentiment, correctSentiment, userId) {
+  const token = localStorage.getItem('access_token');
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  
+  const res = await fetch(`${API}/feedback`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      email_id: emailId,
+      predicted_sentiment: predictedSentiment,
+      correct_sentiment: correctSentiment,
+      user_id: userId
+    })
+  });
+  return res.json();
+}
+
+export async function fetchFeedbackStats() {
+  const token = localStorage.getItem('access_token');
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  
+  const res = await fetch(`${API}/feedback/stats`, { headers });
+  return res.json();
+}

@@ -20,16 +20,23 @@ export default function Dashboard() {
   const modalVisual = selectedEmail ? getSentimentVisual(selectedEmail.sentiment) : null;
   const modalSentimentLabel = selectedEmail ? normalizeSentiment(selectedEmail.sentiment) : "";
 
+  // Fetch user history with authorization token on mount
   useEffect(() => {
     if (user) {
       setIsLoading(true);
-      fetch(`${API}/history/${encodeURIComponent(user)}`)
-        .then(res => new Promise(resolve => setTimeout(() => resolve(res.json()), 1000)))
+      const token = localStorage.getItem('access_token');
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      fetch(`${API}/history/${encodeURIComponent(user)}`, { headers })
+        .then(res => res.json())
         .then(data => setHistory(data))
+        .catch(err => console.error("Failed to fetch dashboard history:", err))
         .finally(() => setIsLoading(false));
     }
   }, [user]);
 
+  // Generate AI contextual response based on selected email intent
   const handleTakeAction = async () => {
     if (!selectedEmail) return;
     setIsGenerating(true);
@@ -54,6 +61,7 @@ export default function Dashboard() {
     }
   };
 
+  // Handle user feedback for correcting spam classification
   const handleSpamFeedback = async (isSpam) => {
     if (!selectedEmail) return;
     try {

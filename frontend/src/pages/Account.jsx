@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fetchUserDetails, updateUserDetails, changePassword } from "../api";
+import API, { fetchUserDetails, updateUserDetails, changePassword } from "../api";
 import { supabase } from "../utils/supabase";
 import Cropper from 'react-easy-crop';
 
@@ -189,10 +189,11 @@ export default function Account() {
   const [twoFactorSecret, setTwoFactorSecret] = useState("");
   const [otpVerify, setOtpVerify] = useState("");
 
+  // Initialize Two-Factor Authentication setup process
   const setup2FA = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://127.0.0.1:5000/api/2fa/setup/${encodeURIComponent(localStorage.getItem("user"))}`, {
+      const res = await fetch(`${API}/2fa/setup/${encodeURIComponent(localStorage.getItem("user"))}`, {
         method: "GET"
       });
       const data = await res.json();
@@ -209,6 +210,7 @@ export default function Account() {
     }
   };
 
+  // Verify and enable Two-Factor Authentication
   const verify2FA = async () => {
     if (!otpVerify) {
       setError("Please enter the 6-digit code.");
@@ -216,7 +218,7 @@ export default function Account() {
     }
     try {
        setLoading(true);
-       const res = await fetch("http://127.0.0.1:5000/api/2fa/verify", {
+       const res = await fetch(`${API}/2fa/verify`, {
          method: "POST",
          headers: { 
            "Content-Type": "application/json"
@@ -237,10 +239,11 @@ export default function Account() {
     }
   };
 
+  // Disable Two-Factor Authentication
   const disable2FA = async () => {
     try {
        setLoading(true);
-       const res = await fetch("http://127.0.0.1:5000/api/2fa/disable", {
+       const res = await fetch(`${API}/2fa/disable`, {
          method: "POST",
          headers: { 
            "Content-Type": "application/json"

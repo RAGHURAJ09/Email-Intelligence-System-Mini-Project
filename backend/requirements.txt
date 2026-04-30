@@ -20,5 +20,8 @@ scikit-learn
 # Environment Variables
 python-dotenv==1.0.1
 
+# Async/Queue
+redis
+celery
+
 # Sandbox execution
-daytona-sdk
