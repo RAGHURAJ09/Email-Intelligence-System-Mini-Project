@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { playSound } from "../utils/soundEffects";
+import API_BASE from "../config";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
     setStatus("");
     setMaskedEmail("");
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/forgot-password", {
+      const res = await fetch(`${API_}/api/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

@@ -1600,6 +1600,6 @@ if __name__ == "__main__":
             print("✅ New tables created successfully.")
         except Exception as e:
             app.logger.warning(f"New tables note: {e}")
-    app.run(debug=True)
+    app.run(debug=False)
 
 

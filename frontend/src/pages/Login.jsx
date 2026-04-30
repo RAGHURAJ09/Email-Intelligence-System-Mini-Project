@@ -36,7 +36,7 @@ export default function Login() {
           otp: otp,
           is_oauth: true
         };
-        const res = await fetch("http://127.0.0.1:5000/api/login", {
+        const res = await fetch(`${API_BASE}/api/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -86,7 +86,7 @@ export default function Login() {
         payload.otp = otp;
       }
 
-      const res = await fetch("http://127.0.0.1:5000/api/login", {
+      const res = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
