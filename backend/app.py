@@ -82,13 +82,16 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-load_dotenv()
-
-app = Flask(
-    __name__,
-    static_folder="../frontend/dist",
-    static_url_path="/"
-)
+# Security Headers Middleware
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:;"
+    return response
 
 @app.errorhandler(400)
 def bad_request(error):
