@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Hero from "../components/Hero";
-import { analyzeEmail, submitFeedback, submitCorrection } from "../api";
+import { analyzeEmail, submitFeedback, submitCorrection, submitSentimentFeedback } from "../api";
 import { useBackground } from "../context/BackgroundContext";
 import { playSound } from "../utils/soundEffects";
 import { getSentimentVisual, normalizeSentiment, sentimentTone } from "../utils/sentiment";
@@ -128,6 +128,9 @@ export default function Home() {
     setRecordId(null);
     setCorrectionMode(false);
     setCorrectionSent(false);
+    setSentimentFeedbackMode(false);
+    setSentimentFeedbackSent(false);
+    setSentimentCorrect('');
     setBgState('default');
   };
 
@@ -148,6 +151,46 @@ export default function Home() {
       // submitFeedback sends JWT Authorization header automatically
       await submitFeedback(recordId, type);
     } catch (e) { console.error(e); }
+  };
+
+  // Sentiment feedback state
+  const [sentimentFeedbackMode, setSentimentFeedbackMode] = React.useState(false);
+  const [sentimentFeedbackSent, setSentimentFeedbackSent] = React.useState(false);
+  const [sentimentCorrect, setSentimentCorrect] = React.useState('');
+  const [sentimentLoading, setSentimentLoading] = React.useState(false);
+
+  const handleSentimentFeedback = async () => {
+    if (!recordId || !sentimentCorrect || sentimentLoading) return;
+    setSentimentLoading(true);
+    
+    try {
+      const predictedSentiment = result?.sentiment || 'Neutral';
+      const response = await submitSentimentFeedback(
+        `email_${recordId}`,
+        predictedSentiment,
+        sentimentCorrect,
+        user
+      );
+      
+      if (response && response.status === 'recorded') {
+        setSentimentFeedbackSent(true);
+        playSound('high-priority');
+      } else {
+        setNotification('❌ Failed to submit feedback');
+        setTimeout(() => setNotification(''), 3000);
+      }
+    } catch (e) { 
+      console.error(e);
+      setNotification('❌ Failed to submit feedback');
+      setTimeout(() => setNotification(''), 3000);
+    } finally {
+      setSentimentLoading(false);
+    }
+  };
+
+  const openSentimentFeedback = () => {
+    setSentimentFeedbackMode(true);
+    setSentimentCorrect('');
   };
 
   const handleCorrection = async () => {
@@ -389,27 +432,65 @@ export default function Home() {
                                </select>
                              </div>
                            </div>
-                           <button className="btn-primary" onClick={handleCorrection} style={{ width: '100%', fontSize: '13px', padding: '10px' }}>
-                             Train Model with Correction
-                           </button>
-                        </div>
-                      ) : (
-                        <div>
-                          <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '10px' }}>Was this analysis helpful?</p>
-                          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                            <button
-                              onClick={() => handleFeedback('helpful')}
-                              style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.08)', color: '#10b981', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-                            >👍 Helpful</button>
-                            <button
-                              onClick={() => handleFeedback('not_helpful')}
-                              style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(248,113,113,0.4)', background: 'rgba(248,113,113,0.08)', color: '#f87171', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-                            >👎 Not Helpful</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+<button className="btn-primary" onClick={handleCorrection} style={{ width: '100%', fontSize: '13px', padding: '10px' }}>
+                              Train Model with Correction
+                            </button>
+                         </div>
+                       ) : (
+                         <div>
+                            <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '10px' }}>Was this analysis helpful?</p>
+                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => handleFeedback('helpful')}
+                                style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.08)', color: '#10b981', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                              >👍 Helpful</button>
+                              <button
+                                onClick={() => handleFeedback('not_helpful')}
+                                style={{ padding: '8px 20px', borderRadius: '20px', border: '1px solid rgba(248,113,113,0.4)', background: 'rgba(248,113,113,0.08)', color: '#f87171', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                              >👎 Not Helpful</button>
+                            </div>
+                            {result?.sentiment && (
+                              <div style={{ marginTop: '16px' }}>
+                                <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '8px' }}>
+                                  Sentiment: <span style={{ color: '#a78bfa', fontWeight: 600 }}>{result.sentiment}</span>
+                                </p>
+                                {sentimentFeedbackSent ? (
+                                  <p style={{ color: '#10b981', fontSize: '12px', margin: 0 }}>✅ Thanks for your feedback!</p>
+                                ) : sentimentFeedbackMode ? (
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <select 
+                                      value={sentimentCorrect} 
+                                      onChange={e => setSentimentCorrect(e.target.value)}
+                                      style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', color: '#f8fafc', fontSize: '12px' }}
+                                    >
+                                      <option value="">Fix sentiment...</option>
+                                      <option value="Positive">Positive</option>
+                                      <option value="Neutral">Neutral</option>
+                                      <option value="Negative">Negative</option>
+                                    </select>
+                                    <button 
+                                      onClick={handleSentimentFeedback}
+                                      disabled={sentimentLoading || !sentimentCorrect}
+                                      className="btn-primary"
+                                      style={{ padding: '8px 12px', fontSize: '12px', opacity: sentimentLoading || !sentimentCorrect ? 0.6 : 1 }}
+                                    >
+                                      {sentimentLoading ? '...' : 'Save'}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setSentimentFeedbackMode(true)}
+                                    style={{ padding: '6px 14px', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.08)', color: '#a78bfa', cursor: 'pointer', fontSize: '11px', marginTop: '4px' }}
+                                  >
+                                    Rate sentiment
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                         </div>
+                       )}
+                     </div>
+)}
                 </motion.div>
               )}
             </AnimatePresence>

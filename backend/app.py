@@ -3,24 +3,30 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_mail import Mail, Message
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
 import pickle
 import os
 import csv
 import io
 import json
 import secrets
-from dotenv import load_dotenv
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from flask_mail import Mail, Message
-from datetime import datetime, timedelta
 import re
 import random
+import string
+import logging
+import traceback
+from io import BytesIO
+import base64
+import pyotp
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import os
-import pickle
+from logging.handlers import RotatingFileHandler
+from werkzeug.exceptions import HTTPException
 
 try:
     import redis
@@ -75,21 +81,14 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
-# Error logging to file so I can debug crashes
-import logging
-from logging.handlers import RotatingFileHandler
-import traceback
-from werkzeug.exceptions import HTTPException
 
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+load_dotenv()
 
-file_handler = RotatingFileHandler('logs/backend.log', maxBytes=1048576, backupCount=10)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(message)s [in %(pathname)s:%(lineno)d]'
-))
-app.logger.addHandler(file_handler)
-app.logger.setLevel(logging.INFO)
+app = Flask(
+    __name__,
+    static_folder="../frontend/dist",
+    static_url_path="/"
+)
 
 @app.errorhandler(400)
 def bad_request(error):
@@ -184,11 +183,6 @@ try:
     app.logger.info("All ML models and vectorizers loaded successfully")
 except Exception as e:
     app.logger.error(f"CRITICAL: Failed to load ML models: {str(e)}", exc_info=True)
-
-import pyotp
-import base64
-from io import BytesIO
-import string
 
 # Database tables for storage
 class User(db.Model):
@@ -897,6 +891,72 @@ def analyze():
     except Exception as e:
         app.logger.error(f"Error during email analysis: {e}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "message": "Failed to analyze email due to an internal error."}), 500
+
+
+# -------------------------
+# EMAIL INTAKE (ASYNC PROCESSING)
+# -------------------------
+@app.route("/api/email/intake", methods=["POST"])
+@jwt_required()
+@limiter.limit("30 per hour")
+def email_intake():
+    """Receive email and queue it for async processing. Returns 202 immediately."""
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
+        data = request.json
+        if not data or not data.get("email"):
+            return jsonify({"error": "Email content is required"}), 400
+
+        email = data.get("email", "").strip()
+        email_id = data.get("email_id")
+
+        if len(email) < 10:
+            return jsonify({"error": "Email content is too short (min 10 characters)"}), 400
+        if len(email) > 10000:
+            return jsonify({"error": "Email content is too long (max 10,000 characters)"}), 400
+
+        user = get_jwt_identity()
+        
+        if not email_id:
+            email_id = f"email_{int(datetime.utcnow().timestamp() * 1000)}"
+
+        try:
+            import worker
+            worker.enqueue_email({
+                "email_id": email_id,
+                "email": email,
+                "user": user,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            app.logger.info(f"Email {email_id} queued for processing")
+        except Exception as q_err:
+            app.logger.warning(f"Queue not available, falling back to sync processing: {q_err}")
+            intent, priority, sentiment, confidence, is_spam = analyze_email(email)
+            try:
+                classification = Classification(
+                    email_id=email_id,
+                    category=intent,
+                    confidence=confidence,
+                    processed_at=datetime.utcnow(),
+                    mode="realtime"
+                )
+                db.session.add(classification)
+                db.session.commit()
+            except Exception as db_err:
+                app.logger.warning(f"Failed to save classification: {db_err}")
+
+        return jsonify({
+            "status": "accepted",
+            "email_id": email_id,
+            "message": "Email queued for processing",
+            "mode": "async"
+        }), 202
+
+    except Exception as e:
+        app.logger.error(f"Error in email intake: {e}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "message": "Failed to queue email."}), 500
 
 
 # -------------------------

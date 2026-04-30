@@ -3,6 +3,12 @@
   <p align="center">
     <strong>An automated, machine learning-powered triage platform for customer support emails.</strong>
   </p>
+  
+  ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
+  ![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat&logo=react&logoColor=black)
+  ![Flask](https://img.shields.io/badge/Flask-2.3-000000?style=flat&logo=flask&logoColor=white)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=flat&logo=postgresql&logoColor=white)
+  ![License](https://img.shields.io/badge/License-MIT-green)
 </div>
 
 <br />
@@ -12,6 +18,75 @@
 In today's fast-paced digital marketplace, businesses receive thousands of customer support emails daily. Manually reading, categorizing, and prioritizing these emails is highly time-consuming and prone to human error. Customer satisfaction drops significantly when urgent issues (like a payment failure or service downtime) get buried under general queries.
 
 **The Solution:** This project is an automated **Email Intelligence System** that leverages Natural Language Processing (NLP) to read incoming customer emails in real-time. It instantly extracts the *Intent* (what the user wants), analyzes the *Sentiment* (how the user represents their feeling), and automatically assigns a *Priority level* to help support agents resolve critical issues first.
+
+---
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          CLIENT LAYER (React Frontend)                 │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐   │
+│  │  Home   │  │ Login   │  │Dashboard│  │ History │  │ Admin   │   │
+│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘   │
+│       └────────────┴────────────┴────────────┴────────────┘           │
+│                              │                                    │
+│                    ┌────────▼────────┐                          │
+│                    │   API Client   │                          │
+│                    └────────┬────────┘                          │
+└─────────────────────────────┼────────────────────────────────────┘
+                              │ HTTP/REST
+                              │ JWT Auth
+┌─────────────────────────────┼────────────────────────────────────┐
+│                    BACKEND LAYER (Flask)                         │
+│                    ┌────────▼────────┐                          │
+│                    │  Auth Manager │                          │
+│                    │  (JWT, 2FA)    │                          │
+│                    └──────┬─────��─┘                          │
+│                           │                                    │
+│         ┌─────────────────┼─────────────────┐                  │
+│         │                 │                 │                    │
+│  ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐  │
+│  │ Classifier │  │ Sentiment  │  │   Reply    │  │
+│  │  Pipeline │  │   Engine  │  │ Generator │  │
+│  └─────┬─────┘  └──────┬─────┘  └──────┬─────┘  │
+│        │                │              │           │
+│        └────────────────┼──────────────┘           │
+│                         │                          │
+│              ┌───────────▼───────────┐              │
+│              │   ML Models (Pickle) │              │
+│              │ • Intent Model     │              │
+│              │ • Sentiment Model │              │
+│              │ • Priority Model │              │
+│              │ • Spam Detector │              │
+│              └─────────────────┘              │
+└─────────────────────────────┼────────────────────────────────────┘
+                              │
+                              │ SQLAlchemy ORM
+                              │
+┌─────────────────────────────┼────────────────────────────────────┐
+│                       DATABASE LAYER                         │
+│         ┌─────────────────┼─────────────────┐         │
+│         │                 │                 │            │
+│  ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐│
+│  │    User    │  │EmailHistory│  │Feedback & │ │
+│  │  Table    │  │  Table    │  │ RetrainLog │ │
+│  └───────────┘  └───────────┘  └───────────┘│
+│                                                   │
+│              PostgreSQL (Supabase Cloud)              │
+└───────────────────────────────────────────────┘
+```
+
+---
+
+## 📊 Data Flow
+
+```
+Email → Preprocess (NLTK) → TF-IDF → ML Models → Result
+         ↓                 ↓           ↓
+      Cleaning      Feature      Intent/Sentiment/
+                     Extraction   Priority/Spam
+```
 
 ---
 
@@ -50,39 +125,25 @@ In today's fast-paced digital marketplace, businesses receive thousands of custo
 
 ---
 
-## 🚀 Installation & Setup 
+## 🤖 Machine Learning Implementation
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/RAGHURAJ09/Email-Intelligence-System-Mini-Project.git
-cd Email-Intelligence-System-Mini-Project
-```
+This was the most challenging part. We used a dataset of about 9500 support tickets to get things started:
 
-### 2. Configure Environment Variables
-1. Create a `.env` file in the `/backend` folder.
-2. Add your required keys (Database, JWT, SMTP, etc.):
-```env
-DATABASE_URL=postgresql://postgres:[password]@db.[project-id].supabase.co:5432/postgres
-JWT_SECRET_KEY=your_super_secret_key
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your_email@gmail.com
-MAIL_PASSWORD=your_app_password
-MAIL_DEFAULT_SENDER=your_email@gmail.com
-```
+1. **Data Preprocessing:** Real-world text data is messy. We used Python's NLTK to clean the text by converting it to lowercase, removing punctuation, and filtering out common "stop words" (like 'the', 'is', 'at') that don't add meaning to intent.
 
-### 3. Run the Application
-You can now run the frontend and backend together using the unified run script:
+2. **Feature Extraction (TF-IDF):** Machine learning algorithms can't read text; they need numbers. We used a `TfidfVectorizer` to convert the cleaned text into a matrix of TF-IDF features. This algorithm penalizes words that appear too frequently across all emails and boosts words that are unique and define the intent (e.g., "broken", "refund", "login").
 
-```bash
-# First, ensure you build the frontend (only needed when UI changes are made):
-build_frontend.bat
+3. **Algorithm Selection & Training:** We experimented with Logistic Regression, but found that a **Random Forest Classifier** provided the best balance of multi-class accuracy and robust feature importance for text classification. We trained four separate models:
+   - **Intent Model:** Predicts categories like Refund, Tech Support, or Feedback
+   - **Sentiment Model:** Scores the text as Positive, Negative, or Neutral
+   - **Priority Model:** Classifies the urgency as High, Medium, or Low
+   - **Spam Model:** Detects typical promotional or phishing spam
 
-# Then start the unified server:
-run_app.bat
-```
-*The full application will be available at http://127.0.0.1:5000.*
+4. **Results & Reality Check:** After training with an 80/20 split, we managed to get the accuracy up to around **97%**. We also checked things like Precision and F1 Score to make sure it wasn't just guessing.
+
+5. **Confidence Thresholding & Heuristics:** To prevent hallucinations, the system uses `predict_proba`. If confidence is below 55%, it defaults to heuristic triggers to ensure accuracy.
+
+6. **User Feedback Loop:** Users can provide 'Helpful' or 'Not Helpful' feedback on results, which is stored to improve future model versions.
 
 ---
 
@@ -98,6 +159,7 @@ run_app.bat
 | **POST** | `/api/forgot-password` | `{email}` | `{message, masked_email}` |
 | **POST** | `/api/reset-password` | `{token, password}` | `{message}` |
 | **POST** | `/api/analyze` | `{email}` | `{intent, priority, sentiment, is_spam, confidence, feedback, mode, analyzed_at, feedback_url}` |
+| **POST** | `/api/email/intake` | `{email, email_id}` | `{status: "accepted", email_id, message, mode: "async"}` (HTTP 202) |
 | **POST** | `/api/classify` | `{email, email_id}` | `{email_id, category, confidence, processed_at, mode, intent, priority, sentiment, is_spam, feedback_url}` |
 | **POST** | `/api/feedback` | `{email_id, predicted_sentiment, correct_sentiment, user_id}` | `{status, email_id, timestamp}` |
 | **GET** | `/api/feedback/stats` | None | `{total_feedback, correct_predictions, accuracy_rate, breakdown}` |
@@ -106,7 +168,6 @@ run_app.bat
 | **GET** | `/api/user/details/<user_id>`| None | `{username, email, profile_pic, fullname, bio...}` |
 | **PUT** | `/api/user/details/<user_id>`| `{fullname, bio, profile_pic}` | `{message}` |
 | **PUT** | `/api/user/password` | `{current_password, new_password}` | `{message}` |
-| **POST** | `/api/feedback` (legacy) | `{id, feedback}` | `{message}` |
 | **GET** | `/api/export/<user>` | None | `CSV File Download` |
 | **POST** | `/api/generate-response` | `{email, intent, sentiment, priority}` | `{response}` |
 | **POST** | `/api/feedback/correct` | `{id, intent, sentiment, priority}` | `{message}` |
@@ -190,29 +251,43 @@ User feedback to improve predictions over time:
 
 ---
 
-## 🛠️ Setup with Redis & Celery
+## 🔧 Classification Reference
 
-For real-time classification with async processing:
+| Intent | Keywords | Priority | Sentiment |
+|--------|----------|----------|-----------|
+| Spam | congratulations, prize, winner, click link | High | Negative |
+| Refund | refund, money back, chargeback | High | Negative |
+| Cancel | cancel, unsubscribe | High | Neutral |
+| Escalation | lawyer, fraud, legal action | High | Negative |
+| Feedback | amazing, great, thank, terrible | Low/Medium | Varies |
+| Issue | broken, damaged, error | Medium | Negative |
+| Query | how, what, can i | Low | Neutral |
 
+---
+
+## 💾 Database Schema
+
+| Table Name | Columns | Description |
+|------------|---------|-------------|
+| User | id, username, email, password (Hashed), fullname, profile_pic, bio, two_factor_enabled | Stores credentials and security settings. |
+| EmailHistory | id, user, email, intent, priority, sentiment, is_spam, created_at, user_feedback | Stores analysis results. |
+| Classification | id, email_id, category, confidence, processed_at, mode | Stores realtime/batch classifications. |
+| SentimentFeedback | id, email_id, predicted_sentiment, correct_sentiment, user_id, created_at | Stores user corrections. |
+
+---
+
+## 🚀 Installation & Setup 
+
+### 1. Clone the repository
 ```bash
-# 1. Install dependencies
-cd backend
-pip install -r requirements.txt
-
-# 2. Start Redis (required for Celery)
-redis-server
-
-# 3. Start Celery worker (in separate terminal)
-celery -A tasks worker --loglevel=info
-
-# 4. Start the Flask app
-python app.py
+git clone https://github.com/RAGHURAJ09/Email-Intelligence-System-Mini-Project.git
+cd Email-Intelligence-System-Mini-Project
 ```
 
-### Environment Variables
-Add to your `.env`:
+### 2. Configure Environment Variables
+1. Create a `.env` file in the `/backend` folder.
+2. Add your required keys:
 ```env
-REDIS_URL=redis://localhost:6379/0
 DATABASE_URL=postgresql://postgres:[password]@db.[project-id].supabase.co:5432/postgres
 JWT_SECRET_KEY=your_super_secret_key
 MAIL_SERVER=smtp.gmail.com
@@ -222,6 +297,98 @@ MAIL_USERNAME=your_email@gmail.com
 MAIL_PASSWORD=your_app_password
 MAIL_DEFAULT_SENDER=your_email@gmail.com
 ```
+
+### 3. Run the Application
+```bash
+# First, ensure you build the frontend (only needed when UI changes are made):
+build_frontend.bat
+
+# Then start the unified server:
+run_app.bat
+```
+*The full application will be available at http://127.0.0.1:5000.*
+
+---
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions Pipeline:
+1. Checkout Code
+2. Install Dependencies (pip + npm)
+3. Syntax Validation
+4. Build Frontend
+5. Deploy
+
+### Deployment Options:
+
+**Local (Recommended):**
+```bash
+# Production build
+cd frontend && npm run build
+
+# Run server
+cd backend && python app.py
+```
+
+**Docker:**
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+```
+
+**Cloud (Render/Railway):**
+- Connect GitHub repo
+- Set environment variables
+- Auto-deploy on push
+
+---
+
+## 📁 Project Structure
+
+```
+customer_email_ai/
+├── backend/
+│   ├── app.py              # Main Flask app
+│   ├── model.py           # ML training script
+│   ├── spam_email.py     # Spam model training
+│   ├── tasks.py         # Celery tasks
+│   ├── worker.py       # Queue worker
+│   ├── requirements.txt
+│   └── .env
+├── frontend/
+│   ├── src/
+│   │   ├── pages/       # React pages
+│   │   ├── components/  # UI components
+│   │   ├── utils/      # Utilities
+│   │   ├── context/    # React context
+│   │   ├── api.js     # API client
+│   │   └── index.css # Global styles
+│   ├── package.json
+│   └── vite.config.js
+├── dataset/
+│   ├── emails.csv
+│   └── spam_email.csv
+├── build_frontend.bat
+├── run_app.bat
+└── README.md
+```
+
+---
+
+## 🔧 Troubleshooting
+
+| Issue | Solution |
+|-------|---------|
+| CORS Error | Check `ALLOWED_ORIGINS` in app.py |
+| Model Load Error | Run `python model.py` first |
+| 2FA Not Working | Check SMTP settings |
+| Slow Analysis | Pre-loaded models not loading |
+| Database Error | Check DATABASE_URL |
 
 ---
 

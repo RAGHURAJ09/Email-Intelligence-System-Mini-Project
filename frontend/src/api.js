@@ -156,3 +156,16 @@ export async function fetchFeedbackStats() {
   const res = await fetch(`${API}/feedback/stats`, { headers });
   return res.json();
 }
+
+export async function emailIntake(email, emailId) {
+  const token = localStorage.getItem('access_token');
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  
+  const res = await fetch(`${API}/email/intake`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email, email_id: emailId })
+  });
+  return res.json();
+}
