@@ -8,6 +8,7 @@ Flask-Mail==0.9.1
 pyotp==2.9.0
 qrcode[pil]==7.4.2
 flask-limiter==3.5.0
+nltk==3.7
 
 # Production WSGI Server for deployment
 gunicorn==21.2.0
