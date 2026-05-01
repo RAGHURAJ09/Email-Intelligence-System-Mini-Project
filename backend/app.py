@@ -18,6 +18,7 @@ import re
 import random
 import string
 import logging
+logging.basicConfig(level=logging.DEBUG)
 from io import BytesIO
 import base64
 import pyotp
@@ -74,22 +75,28 @@ def server_error(e):
     return jsonify({"error": "Server Error"}), 500
 
 # jwt setup
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "mysecretkey123")
 app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "mysecretkey123")
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 jwt = JWTManager(app)
 
 # database setup
-db_url = os.getenv("DATABASE_URL")
-if not db_url:
-    db_url = "sqlite:///emails.db"
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 300,
-    'connect_args': {'connect_timeout': 10}
-}
-db = SQLAlchemy(app)
+try:
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        db_url = "sqlite:///emails.db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'connect_args': {'connect_timeout': 10}
+    }
+    db = SQLAlchemy(app)
+    print(f"DB configured: {db_url[:30]}...")
+except Exception as e:
+    print(f"DB config error: {e}")
+    db = None
 
 # mail config
 app.config['MAIL_SERVER'] = "smtp.gmail.com"

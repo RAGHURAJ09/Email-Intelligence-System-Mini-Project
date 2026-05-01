@@ -12,17 +12,15 @@ services:
         fromDatabase:
           name: customer-email-db
           property: connectionString
-      - key: FRONTEND_URL
-        value: "https://customer-email-ai-frontend.onrender.com"
+      - key: SECRET_KEY
+        generateValue: true
       - key: JWT_SECRET_KEY
         generateValue: true
+      - key: FRONTEND_URL
+        value: "https://customer-email-ai-frontend.onrender.com"
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD
-        sync: false
-      - key: MAIL_DEFAULT_SENDER
-        sync: false
-      - key: DAYTONA_API_KEY
         sync: false
 
   # Frontend Static Site
