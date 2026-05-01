@@ -171,14 +171,21 @@ class SentimentFeedback(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # preprocessing for spam detection
-lm = WordNetLemmatizer()
+lm = None
+
+def get_lemmatizer():
+    global lm
+    if lm is None:
+        lm = WordNetLemmatizer()
+    return lm
 
 def preprocess(text):
     text = text.lower()
     text = ''.join([c for c in text if c not in string.punctuation])
     text = re.sub(r'\d+', '', text)
     tokens = text.split()
-    tokens = [lm.lemmatize(w) for w in tokens if w not in get_stop_words()]
+    lemmatizer = get_lemmatizer()
+    tokens = [lemmatizer.lemmatize(w) for w in tokens if w not in get_stop_words()]
     return ' '.join(tokens)
 
 def check_spam_keywords(text):
@@ -776,6 +783,15 @@ with app.app_context():
         print("DB ready")
     except Exception as e:
         print(f"DB init warning: {e}")
+        # Fallback: create tables with SQLite directly if SQLAlchemy fails
+        import sqlite3
+        from sqlalchemy import text
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print("DB connection OK")
+        except Exception as db_err:
+            print(f"DB connection issue: {db_err}")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
