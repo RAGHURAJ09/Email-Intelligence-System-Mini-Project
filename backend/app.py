@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -40,11 +40,17 @@ def get_stop_words():
 load_dotenv()
 
 # setup flask app
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend/dist/assets', static_url_path='/assets')
 
-# cors setup - use FRONTEND_URL env variable
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-origins = [frontend_url, "http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:5173"]
+# Determine frontend dist path
+FRONTEND_DIST = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
+if not os.path.exists(FRONTEND_DIST):
+    FRONTEND_DIST = os.path.join(os.path.dirname(__file__), 'frontend', 'dist')
+
+# cors setup - allow all origins for single service deployment
+# Update frontends origins as needed
+frontend_url = os.getenv("FRONTEND_URL", "")
+origins = [frontend_url] if frontend_url else ["*"]
 CORS(app, origins=origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
 
 bcrypt = Bcrypt(app)
@@ -805,3 +811,27 @@ with app.app_context():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
+
+# ─────────────────────────────────────────────────────────
+# Frontend serving routes (must be after all API routes)
+# ─────────────────────────────────────────────────────────
+
+@app.route('/<path:fallback>')
+def serve_frontend_fallback(fallback):
+    """Serve frontend for unknown routes (React Router fallback)"""
+    file_path = os.path.join(FRONTEND_DIST, fallback)
+    if os.path.exists(file_path):
+        return send_from_directory(FRONTEND_DIST, fallback)
+    return send_from_directory(FRONTEND_DIST, 'index.html')
+
+@app.route('/')
+@app.route('/index')
+@app.route('/index.html')
+def serve_frontend():
+    """Serve frontend index.html"""
+    return send_from_directory(FRONTEND_DIST, 'index.html')
+
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    """Serve frontend static assets"""
+    return send_from_directory(os.path.join(FRONTEND_DIST, 'assets'), filename)
