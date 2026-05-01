@@ -82,10 +82,12 @@ jwt = JWTManager(app)
 
 # database setup
 try:
-    db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        db_url = "sqlite:///emails.db"
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    elif database_url.startswith('postgresql://'):
+        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True,
@@ -93,7 +95,7 @@ try:
         'connect_args': {'connect_timeout': 10}
     }
     db = SQLAlchemy(app)
-    print(f"DB configured: {db_url[:30]}...")
+    print(f"DB configured: {database_url[:30]}...")
 except Exception as e:
     print(f"DB config error: {e}")
     db = None
