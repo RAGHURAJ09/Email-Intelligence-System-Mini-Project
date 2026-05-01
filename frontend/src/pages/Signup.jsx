@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../utils/supabase";
 import { playSound } from "../utils/soundEffects";
 import API_BASE from "../config";
+import Captcha from "../components/Captcha";
 
 export default function Signup() {
   const [username, setUsername] = useState("");
