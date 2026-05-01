@@ -84,13 +84,16 @@ mail = Mail(app)
 
 # download nltk data
 try:
-    nltk.data.find('corpora/stopwords')
-except:
-    nltk.download('stopwords')
-try:
-    nltk.data.find('corpora/wordnet')
-except:
-    nltk.download('wordnet')
+    try:
+        nltk.data.find('corpora/stopwords')
+    except:
+        nltk.download('stopwords', quiet=True)
+    try:
+        nltk.data.find('corpora/wordnet')
+    except:
+        nltk.download('wordnet', quiet=True)
+except Exception as e:
+    print(f"NLTK Download error: {e}")
 
 # load ML models
 intent_model = None
