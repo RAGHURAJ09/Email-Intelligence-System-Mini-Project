@@ -22,8 +22,19 @@ from io import BytesIO
 import base64
 import pyotp
 import nltk
-from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+
+# Lazy load stopwords to avoid startup hang
+stop_words = None
+def get_stop_words():
+    global stop_words
+    if stop_words is None:
+        try:
+            from nltk.corpus import stopwords as sw
+            stop_words = set(sw.words('english'))
+        except:
+            stop_words = set()
+    return stop_words
 
 load_dotenv()
 
@@ -31,8 +42,8 @@ load_dotenv()
 app = Flask(__name__)
 
 # cors setup
-origins = ["http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:5173"]
-CORS(app, origins=origins, supports_credentials=True)
+origins = ["http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5000"]
+CORS(app, origins=origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
 
 bcrypt = Bcrypt(app)
 
@@ -173,14 +184,13 @@ class SentimentFeedback(db.Model):
 
 # preprocessing for spam detection
 lm = WordNetLemmatizer()
-stop_words = set(stopwords.words('english'))
 
 def preprocess(text):
     text = text.lower()
     text = ''.join([c for c in text if c not in string.punctuation])
     text = re.sub(r'\d+', '', text)
     tokens = text.split()
-    tokens = [lm.lemmatize(w) for w in tokens if w not in stop_words]
+    tokens = [lm.lemmatize(w) for w in tokens if w not in get_stop_words()]
     return ' '.join(tokens)
 
 def check_spam_keywords(text):
