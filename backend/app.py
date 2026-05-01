@@ -43,9 +43,7 @@ load_dotenv()
 app = Flask(__name__, static_folder='../frontend/dist/assets', static_url_path='/assets')
 
 # Determine frontend dist path
-FRONTEND_DIST = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
-if not os.path.exists(FRONTEND_DIST):
-    FRONTEND_DIST = os.path.join(os.path.dirname(__file__), 'frontend', 'dist')
+FRONTEND_DIST = os.path.join(os.path.dirname(__file__), 'dist')
 
 # cors setup - allow all origins for single service deployment
 # Update frontends origins as needed
