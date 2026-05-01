@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -18,58 +18,25 @@ import re
 import random
 import string
 import logging
-import traceback
 from io import BytesIO
 import base64
 import pyotp
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-from logging.handlers import RotatingFileHandler
-from werkzeug.exceptions import HTTPException
-
-try:
-    import redis
-    from celery import Celery
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    celery_app = Celery("email_ai", broker=redis_url, backend=redis_url)
-    celery_app.conf.update(
-        task_serializer="json",
-        accept_content=["json"],
-        result_serializer="json",
-        timezone="UTC",
-        enable_utc=True,
-    )
-    CELERY_AVAILABLE = True
-except ImportError:
-    CELERY_AVAILABLE = False
-    celery_app = None
-
-# Download necessary NLTK data (Skipped on Render to prevent runtime fetch)
-if not os.environ.get('RENDER'):
-    try:
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('stopwords')
-    try:
-        nltk.data.find('corpora/wordnet')
-    except LookupError:
-        nltk.download('wordnet')
-else:
-    print("Running on Render: Skipping automatic NLTK downloads (ensure data is pre-installed).")
 
 load_dotenv()
 
-# Basic Flask configuration - API only, no static files
+# setup flask app
 app = Flask(__name__)
 
-# Allow frontend to access the API
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5000").split(",")
-CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
+# cors setup
+origins = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5000"]
+CORS(app, origins=origins, supports_credentials=True)
 
 bcrypt = Bcrypt(app)
 
-# Setup rate limiting to prevent spamming the API
+# rate limiting
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -77,85 +44,59 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Security Headers Middleware
+# security headers
 @app.after_request
-def add_security_headers(response):
-    """Add security headers to all responses"""
+def add_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:;"
     return response
 
-@app.errorhandler(400)
-def bad_request(error):
-    app.logger.warning(f"Bad Request: {error.description}")
-    return jsonify({"error": "Bad Request", "message": error.description or "The request was invalid."}), 400
-
-@app.errorhandler(401)
-def unauthorized(error):
-    app.logger.warning("Unauthorized access attempt")
-    return jsonify({"error": "Unauthorized", "message": "Authentication is required to access this resource."}), 401
-
-@app.errorhandler(403)
-def forbidden(error):
-    app.logger.warning("Forbidden access attempt")
-    return jsonify({"error": "Forbidden", "message": "You don't have permission to access this resource."}), 403
-
-@app.route('/')
-def index():
-    return jsonify({"message": "Customer Email AI API is running", "version": "1.0.0"}), 200
-
+# error handlers
 @app.errorhandler(404)
-def not_found(error):
-    app.logger.warning(f"Not Found: {request.path}")
-    return jsonify({"error": "Not Found", "message": "The requested resource could not be found."}), 404
+def not_found(e):
+    return jsonify({"error": "Not Found"}), 404
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    if isinstance(e, HTTPException):
-        return e
-    app.logger.error(f"Unhandled Exception: {str(e)}\n{traceback.format_exc()}")
-    return jsonify({
-        "error": "Internal Server Error",
-        "message": "An unexpected error occurred. Please try again later."
-    }), 500
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({"error": "Server Error"}), 500
 
-
-# Secret key for JWT auth tokens
-app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "customer-ai-super-secret-fallback")
-# Make tokens last a long time (30 days) to prevent "Token has expired" errors during development
+# jwt setup
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "mysecretkey123")
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 jwt = JWTManager(app)
 
-@jwt.expired_token_loader
-def expired_token_callback(jwt_header, jwt_payload):
-    return jsonify({
-        "error": "Unauthorized",
-        "message": "Token has expired. Please login again."
-    }), 401
-
-# Connect to the PostgreSQL database on Supabase
-
+# database setup
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Config for sending emails via Gmail SMTP
-app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
-app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
+# mail config
+app.config['MAIL_SERVER'] = "smtp.gmail.com"
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
 app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME"))
 mail = Mail(app)
 
-# Initialize ML model variables as None in case they fail to load
-intent_model = sentiment_model = priority_model = vectorizer = None
-spam_model = spam_vectorizer = None
+# download nltk data
+try:
+    nltk.data.find('corpora/stopwords')
+except:
+    nltk.download('stopwords')
+try:
+    nltk.data.find('corpora/wordnet')
+except:
+    nltk.download('wordnet')
 
-# Loading the ML models and vectorizers
+# load ML models
+intent_model = None
+sentiment_model = None
+priority_model = None
+vectorizer = None
+spam_model = None
+spam_vectorizer = None
+
 try:
     with open("model.pkl", "rb") as f:
         models = pickle.load(f)
@@ -166,21 +107,19 @@ try:
     with open("vectorizer.pkl", "rb") as f:
         vectorizer = pickle.load(f)
 
-    # Loading the standalone Spam model assets
-    if os.path.exists("spam_email.pkl") and os.path.exists("spam_vectorizer.pkl"):
+    if os.path.exists("spam_email.pkl"):
         with open("spam_email.pkl", "rb") as f:
             spam_model = pickle.load(f)
+    
+    if os.path.exists("spam_vectorizer.pkl"):
         with open("spam_vectorizer.pkl", "rb") as f:
             spam_vectorizer = pickle.load(f)
-        app.logger.info("Standalone spam model and vectorizer loaded successfully")
-    else:
-        app.logger.warning("Spam email assets not found, using fallback detection")
-
-    app.logger.info("All ML models and vectorizers loaded successfully")
+            
+    print("Models loaded")
 except Exception as e:
-    app.logger.error(f"CRITICAL: Failed to load ML models: {str(e)}", exc_info=True)
+    print(f"Model loading error: {e}")
 
-# Database tables for storage
+# database tables
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -194,10 +133,6 @@ class User(db.Model):
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
 
-    def __init__(self, **kwargs):
-        """Explicit constructor to fix 'unexpected keyword argument' errors."""
-        super(User, self).__init__(**kwargs)
-
 class EmailHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(100), nullable=False)
@@ -207,20 +142,15 @@ class EmailHistory(db.Model):
     sentiment = db.Column(db.String(50))
     is_spam = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_feedback = db.Column(db.String(10), nullable=True)  # 'helpful' or 'not_helpful'
-
+    user_feedback = db.Column(db.String(10), nullable=True)
 
 class Classification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email_id = db.Column(db.String(100), nullable=False, index=True)
+    email_id = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50), nullable=False)
     confidence = db.Column(db.Float, nullable=False)
     processed_at = db.Column(db.DateTime, default=datetime.utcnow)
-    mode = db.Column(db.String(20), nullable=False)  # 'realtime' or 'batch'
-
-    def __init__(self, **kwargs):
-        super(Classification, self).__init__(**kwargs)
-
+    mode = db.Column(db.String(20), nullable=False)
 
 class SentimentFeedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -230,126 +160,52 @@ class SentimentFeedback(db.Model):
     user_id = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def __init__(self, **kwargs):
-        super(SentimentFeedback, self).__init__(**kwargs)
-
-
-class RetrainLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    triggered_at = db.Column(db.DateTime, default=datetime.utcnow)
-    feedback_count = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), nullable=False)  # 'triggered', 'completed', 'failed'
-
-    def __init__(self, **kwargs):
-        super(RetrainLog, self).__init__(**kwargs)
-
-
-def get_detailed_feedback(intent, priority, sentiment):
-    """Generate recommendations based on what the model found."""
-    insights = []
-    tone_descriptors = []
-    urgency_reason = ""
-    
-    # 1. Analyze and Explain Priority
-    if priority.lower() == "high":
-        urgency_reason = f"High priority due to '{intent}' intent requiring immediate resolution."
-        insights.append(f"🚨 Escalate immediately. {urgency_reason}")
-        if 'refund' in intent.lower() or 'cancel' in intent.lower():
-             insights.append("💰 Financial transaction risk: Prioritize retention or rapid processing.")
-        elif 'issue' in intent.lower() or 'error' in intent.lower():
-             insights.append("🔧 Technical failure reported: Alert technical support team.")
-    elif priority.lower() == "medium":
-        urgency_reason = f"Standard SLA applies for '{intent}' intent."
-        insights.append(f"⏱️ Standard queue. {urgency_reason} Target response: < 24 hrs.")
-    else:
-        urgency_reason = "Low-impact query, no immediate risk detected."
-        insights.append(f"✅ Routine inquiry. {urgency_reason}")
-        
-    # 2. Analyze Sentiment and Tone
-    if sentiment.lower() == "negative":
-        tone_descriptors = ["frustrated", "dissatisfied", "urgent"]
-        insights.append("⚠️ Customer Sentiment Risk: Use an empathetic, apologetic tone. Do not use generic responses.")
-        insights.append("Focus on acknowledging their frustration before offering the solution.")
-    elif sentiment.lower() == "positive":
-        tone_descriptors = ["satisfied", "happy", "appreciative"]
-        insights.append("🌟 Brand Advocate: Express gratitude and reinforce positive relationship.")
-        insights.append("Consider asking for a review or rating after resolving any minor queries.")
-    else:
-        tone_descriptors = ["neutral", "factual", "direct"]
-        insights.append("ℹ️ Neutral Tone: Provide clear, concise, and factual information.")
-        
-    return {
-        "summary": f"This is a {priority.lower()}-priority '{intent}' email.",
-        "urgency_reason": urgency_reason,
-        "tone_descriptors": tone_descriptors,
-        "action_items": insights
-    }
-
-# Initialize lemmatizer and stopwords for spam detection
-lemmatizer = WordNetLemmatizer()
+# preprocessing for spam detection
+lm = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
-def preprocess_text(text):
-    """Clean and tokenize text for the improved spam model."""
+def preprocess(text):
     text = text.lower()
-    text = ''.join([char for char in text if char not in string.punctuation])
+    text = ''.join([c for c in text if c not in string.punctuation])
     text = re.sub(r'\d+', '', text)
     tokens = text.split()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+    tokens = [lm.lemmatize(w) for w in tokens if w not in stop_words]
     return ' '.join(tokens)
 
-def detect_spam_keywords(text):
-    """Robust keyword-based spam detection as fallback."""
+def check_spam_keywords(text):
     text_lower = text.lower()
-    spam_patterns = [
-        'you have been selected', 'lucky winner', 'claim your prize', 'free prize',
-        'click here to claim', 'act fast', 'offer expires', 'congratulations you won',
-        'million dollar', '$1,000,000', 'wire transfer', 'nigerian prince',
-        'make money fast', 'free gift', 'you are a winner', 'verify your identity now',
-        'call now to claim', 'limited time offer', 'this is not a scam',
-        'earn money from home', 'work from home earn', 'guaranteed income',
-        'double your money', 'click this link now', 'free-prize', 'prize-claim',
-        'pharma', 'buy cheap', 'lowest price guarantee', 'no prescription needed',
-        'urgent reply needed', 'dear beneficiary', 'unsubscribe from this list',
-        'you have won', 'selected as a lucky', 'activate your account immediately',
-        'lottery', 'winner', 'funds', 'inheritance', 'bonus', 'payday loan',
-        'weight loss', 'casino', 'investment opportunity', 'bank account suspended',
-        'account alert', 'security update', 're-verify', 'gift card', 'voucher',
-        'unlimited access', 'click here for details', 'private message',
-        'exclusive offer', 'member only', 'unsubscribe'
-    ]
-    spam_score = sum(1 for pattern in spam_patterns if pattern in text_lower)
-    return spam_score >= 1  # Lower threshold to catch more spam (from 2 down to 1)
+    spam_words = ['you have been selected', 'lucky winner', 'claim your prize', 'free prize',
+        'click here', 'act fast', 'offer expires', 'congratulations', 'million dollar',
+        'wire transfer', 'nigerian prince', 'make money fast', 'free gift', 'winner',
+        'verify your identity', 'limited time offer', 'earn money from home', 'guaranteed income',
+        'lottery', 'funds', 'inheritance', 'bonus', 'casino', 'investment']
+    
+    count = sum(1 for word in spam_words if word in text_lower)
+    return count >= 1
 
 def analyze_email(text):
-    """
-    Core function to categorize the email.
-    Uses ML models with robust fallback to keyword-based logic.
-    """
-    text_lower = text.lower()
+    is_spam = False
     
-    # 0. Predict Spam
-    is_spam_pred = False
+    # spam detection using ML model
     if spam_model and spam_vectorizer:
         try:
-            preprocessed_text = preprocess_text(text)
-            spam_vec = spam_vectorizer.transform([preprocessed_text])
-            prediction = spam_model.predict(spam_vec)[0]
-            # Model returns 1 for spam, 0 for ham.
-            is_spam_pred = bool(prediction == 1 or str(prediction).lower() == 'spam')
-        except Exception as e:
-            app.logger.error(f"Error in ML spam prediction: {e}")
+            processed = preprocess(text)
+            spam_vec = spam_vectorizer.transform([processed])
+            pred = spam_model.predict(spam_vec)[0]
+            if pred == 1 or str(pred).lower() == 'spam':
+                is_spam = True
+        except:
+            pass
     
-    # Keyword fallback for spam (always active if ML misses it)
-    if not is_spam_pred:
-        is_spam_pred = detect_spam_keywords(text)
-        
-    # 1. Intent, Sentiment, Priority Analysis
-    # Default fallback values with reasonable confidence
-    intent, priority, sentiment = "Other", "Low", "Neutral"
-    confidence = 0.0
-
-    ml_success = False
+    # keyword fallback
+    if not is_spam:
+        is_spam = check_spam_keywords(text)
+    
+    # default values
+    intent, priority, sentiment = "Query", "Low", "Neutral"
+    confidence = 50.0
+    
+    # use ML models if available
     if vectorizer and intent_model and sentiment_model and priority_model:
         try:
             vec = vectorizer.transform([text])
@@ -357,1242 +213,544 @@ def analyze_email(text):
             max_prob = max(probs)
             confidence = round(max_prob * 100, 2)
             
-            # Ensure minimum confidence is reasonable (not 0%)
-            if confidence < 25.0:
-                confidence = round(random.uniform(90.0, 99.0), 2)
-            
             ml_intent = intent_model.classes_[probs.argmax()]
-            
-            # Base ML predictions
             sentiment = sentiment_model.predict(vec)[0].capitalize()
             priority = priority_model.predict(vec)[0].capitalize()
             intent = ml_intent
-            ml_success = True
             
-            # Map low-level model labels to UI labels
             if intent in ["payment_issue", "delivery_issue"]:
                 intent = "Issue"
             elif intent == "complaint":
                 intent = "Escalation"
             else:
                 intent = intent.capitalize()
-        except Exception as e:
-             app.logger.error(f"Error in ML core prediction: {e}")
+        except:
+            pass
     
-    # Fallback: Generate confidence and intent based on keyword matching when ML fails
-    if not ml_success:
+    # keyword matching fallback
+    if confidence < 30:
         text_lower = text.lower()
-        keyword_confidence = 50.0
         
-        # Count keyword matches to calculate dynamic confidence
-        # SPAM detection FIRST
-        spam_matches = sum(1 for p in ['congratulations', 'lucky winner', 'prize', 'click this link', 'claim your reward', 'free prize', 'act fast', 'offer expires', 'million', 'winner', 'you won', 'selected', 'verify your identity', 'not a scam', 'guaranteed', 'call now'] if p in text_lower)
-        refund_matches = sum(1 for p in ['refund', 'money back', 'reimbursement', 'repay', 'full refund', 'chargeback', 'incorrect charge', 'return my money', 'want a refund', 'need a refund', 'charged', 'overcharged', 'get my money', 'give me back', 'returning', 'returned product'] if p in text_lower)
-        cancel_matches = sum(1 for p in ['cancel', 'close my account', 'stop charging', 'unsubscribe', 'remove me', 'delete account', 'cancel order', 'remove from mailing', 'opt out', 'stop my subscription'] if p in text_lower)
-        escalate_matches = sum(1 for p in ['escalate', 'lawyer', 'attorney', 'sue', 'legal action', 'police', 'report you', 'unauthorized', 'stolen', 'fraud', 'scam', 'lawsuit', 'consumer court', 'supervisor', 'manager'] if p in text_lower)
-        feedback_explicit = sum(1 for p in ['feedback', 'review', 'rating', 'opinion', 'suggestion', 'experience', 'complaint'] if p in text_lower)
-        positive_matches = sum(1 for p in ['amazing', 'love', 'great', 'excellent', 'awesome', 'thank', 'wonderful', 'fantastic', 'best service', 'highly recommend', 'wonderful experience', 'happy', 'pleased', 'impressed', 'fast', 'friendly', 'helpful', 'satisfied', 'good', 'nice', 'perfect', 'brilliant', 'outstanding', 'superb', 'recommend'] if p in text_lower)
-        negative_matches = sum(1 for p in ['terrible', 'worst', 'awful', 'never using', 'refuse', 'never again', 'never buy', 'horrible', 'disappointed', 'hate', 'poor', 'unacceptable', 'frustrat', 'angry', 'upset', 'waste', 'pathetic', 'useless', 'frustrated', 'annoyed'] if p in text_lower)
-        issue_matches = sum(1 for p in ['broken', 'damaged', 'not working', 'never received', 'wrong item', 'error', 'failed', 'defective', 'product arrived', 'crashing', 'freezing', 'down', 'not loading', 'stuck', 'frozen', 'destroyed', 'poor quality', 'malfunction', 'late', 'delayed', 'slow', 'bug', 'glitch', 'no response', 'ignored', 'problem', 'defective'] if p in text_lower)
-        query_matches = sum(1 for p in ['how', 'what', 'where', 'when', 'why', 'can i', 'is it possible', 'wondering', '?', 'help me', 'need help', 'would like to know', 'please provide', 'more about', 'do you offer', 'is there', 'anyone know', 'question', 'some information', 'details about', 'info', 'asking'] if p in text_lower)
-        
-        # Calculate confidence based on keyword match count + randomness
-        def calc_confidence(matches, base_min, base_max):
-            base = base_min + (matches * 3)  # More keywords = higher base
-            return round(random.uniform(min(base, base_max), base_max), 2)
-        
-        # Check SPAM FIRST - spam is negative/annoying
-        if spam_matches >= 2:
-            intent = "Spam"
-            priority = "High"
-            sentiment = "Negative"  # Spam is negative
-            keyword_confidence = 99.0
-            is_spam_pred = True
-        # Check Refund - ALWAYS Negative sentiment (customer asking for money back = negative sentiment)
-        elif refund_matches > 0:
-            intent = "Refund"
-            priority = "High"
-            sentiment = "Negative"  # Refund request is ALWAYS negative
-            keyword_confidence = calc_confidence(refund_matches, 90.0, 99.0)
-        # Check Cancel - neutral sentiment
-        elif cancel_matches > 0:
-            intent = "Cancel"
-            priority = "High"
-            sentiment = "Neutral"
-            keyword_confidence = calc_confidence(cancel_matches, 80.0, 95.0)
-        # Check Cancel
-        elif cancel_matches > 0:
-            intent = "Cancel"
-            priority = "High"
-            sentiment = "Neutral"
-            keyword_confidence = calc_confidence(cancel_matches, 80.0, 95.0)
-        # Check Feedback BEFORE Escalation
-        elif feedback_explicit > 0:
-            intent = "Feedback"
-            priority = "Low"
-            sentiment = "Neutral"
-            keyword_confidence = calc_confidence(feedback_explicit, 80.0, 95.0)
-        elif positive_matches > 0:
-            intent = "Feedback"
-            priority = "Low"
-            sentiment = "Positive"
-            keyword_confidence = calc_confidence(positive_matches, 80.0, 98.0)
-        elif negative_matches > 0:
-            intent = "Feedback"
-            priority = "Medium"
-            sentiment = "Negative"
-            keyword_confidence = calc_confidence(negative_matches, 75.0, 95.0)
-        # Check Escalation
-        elif escalate_matches > 0:
-            intent = "Escalation"
-            priority = "High"
-            sentiment = "Negative"
-            keyword_confidence = calc_confidence(escalate_matches, 75.0, 90.0)
-        # Check Issue
-        elif issue_matches > 0:
-            intent = "Issue"
-            priority = "Medium"
-            sentiment = "Negative"
-            keyword_confidence = calc_confidence(issue_matches, 70.0, 92.0)
-        # Check Query
-        elif query_matches > 0:
-            intent = "Query"
-            priority = "Low"
-            sentiment = "Neutral"
-            keyword_confidence = calc_confidence(query_matches, 60.0, 85.0)
-        else:
-            keyword_confidence = round(random.uniform(50.0, 75.0), 2)
-        
-        confidence = keyword_confidence
-    else:
-        # If models didn't load, use keywords for everything
-        if '?' in text or any(w in text_lower for w in ['how', 'what', 'where', 'when', 'why']):
-            intent = "Query"
-        app.logger.warning("Using keyword fallback only (Models not loaded)")
-
-    # 2. Keyword overrides (always active) - improves classification
-    # SPAM first
-    spam_patterns = ['congratulations', 'lucky winner', 'prize', 'click this link', 'claim your reward', 'free prize', 'act fast', 'offer expires', 'million', 'winner', 'you won', 'selected', 'verify your identity', 'not a scam', 'guaranteed', 'call now']
-    refund_patterns = ['refund', 'money back', 'reimbursement', 'repay', 'full refund', 'chargeback', 'incorrect charge', 'return my money', 'want a refund', 'need a refund', 'charged', 'overcharged', 'get my money', 'give me back', 'returning', 'returned product']
-    cancel_patterns = ['cancel', 'close my account', 'stop charging', 'unsubscribe', 'remove me', 'delete account', 'cancel order', 'remove from mailing', 'opt out', 'stop my subscription']
-    escalation_patterns = ['escalate', 'lawyer', 'attorney', 'sue', 'legal action', 'police', 'report you', 'unauthorized', 'stolen', 'fraud', 'scam', 'supervisor', 'manager', 'consumer court']
-    safety_patterns = ['danger', 'hazard', 'fire', 'explode', 'burn', 'injury', 'hospital', 'poison', 'toxic', 'broken glass', 'safety', 'recall', 'injured', 'hospitalized']
-    # Explicit feedback keywords - complaint is HERE not in escalation
-    feedback_explicit_patterns = ['feedback', 'review', 'rating', 'opinion', 'suggestion', 'experience', 'complaint']
-    # Positive and Negative feedback
-    feedback_positive_patterns = ['amazing', 'love', 'great', 'excellent', 'awesome', 'thank', 'wonderful', 'fantastic', 'best service', 'highly recommend', 'wonderful experience', 'happy', 'pleased', 'impressed', 'fast', 'friendly', 'helpful', 'satisfied', 'good', 'nice', 'perfect', 'brilliant', 'outstanding', 'superb', 'recommend']
-    feedback_negative_patterns = ['disappointed', 'hate', 'terrible', 'awful', 'poor', 'worst', 'unacceptable', 'frustrat', 'angry', 'upset', 'waste', 'never again', 'pathetic', 'useless', 'horrible']
-    issue_patterns = ['broken', 'damaged', 'not working', 'never received', 'wrong item', 'error', 'failed', 'defective', 'product arrived', 'problem with', 'crashing', 'freezing', 'down', 'not loading', 'stuck', 'frozen', 'destroyed', 'poor quality', 'malfunction', 'late', 'delayed', 'slow', 'bug', 'glitch', 'no response', 'ignored']
-    query_patterns = ['how', 'what', 'where', 'when', 'why', 'can i', 'is it possible', 'wondering', '?', 'help me', 'need help', 'would like to know', 'please provide', 'more about', 'do you offer', 'is there', 'anyone know', 'question', 'some information', 'details about', 'info']
-
-    # Order matters - SPAM FIRST, then others
-    if any(p in text_lower for p in spam_patterns):
-        intent = "Spam"
-        priority = "High"
-        sentiment = "Negative"  # Spam is negative
-        is_spam_pred = True
-    elif any(p in text_lower for p in refund_patterns):
-        intent, priority, sentiment = "Refund", "High", "Negative"
-    elif any(p in text_lower for p in cancel_patterns):
-        intent, priority, sentiment = "Cancel", "High", "Neutral"
-    elif any(p in text_lower for p in feedback_explicit_patterns):
-        intent = "Feedback"
-    elif any(p in text_lower for p in feedback_positive_patterns):
-        intent = "Feedback"
-        sentiment = "Positive"
-    elif any(p in text_lower for p in feedback_negative_patterns):
-        intent = "Feedback"
-        sentiment = "Negative"
-        if priority == "Low":
-            priority = "Medium"
-    elif any(p in text_lower for p in escalation_patterns):
-        if intent not in ["Feedback", "Refund", "Cancel"]:
+        if 'refund' in text_lower or 'money back' in text_lower:
+            intent, priority, sentiment = "Refund", "High", "Negative"
+            confidence = 90.0
+        elif 'cancel' in text_lower or 'unsubscribe' in text_lower:
+            intent, priority, sentiment = "Cancel", "High", "Neutral"
+            confidence = 85.0
+        elif 'escalate' in text_lower or 'lawyer' in text_lower or 'sue' in text_lower:
             intent, priority, sentiment = "Escalation", "High", "Negative"
-    elif any(p in text_lower for p in safety_patterns):
-        if intent not in ["Feedback", "Refund", "Cancel"]:
-            intent, priority, sentiment = "Issue", "High", "Negative"
-    elif any(p in text_lower for p in issue_patterns):
-        if intent in ["Other", "Query"]:
-            intent = "Issue"
-            priority = "Medium"
-            sentiment = "Negative"
-    # 3. Final Adjustments
-    if sentiment == "Negative" and priority == "Low":
+            confidence = 85.0
+        elif 'broken' in text_lower or 'damaged' in text_lower or 'not working' in text_lower:
+            intent, priority, sentiment = "Issue", "Medium", "Negative"
+            confidence = 80.0
+        elif 'thank' in text_lower or 'great' in text_lower or 'love' in text_lower:
+            intent, priority, sentiment = "Feedback", "Low", "Positive"
+            confidence = 85.0
+        elif 'terrible' in text_lower or 'worst' in text_lower or 'disappointed' in text_lower:
+            intent, priority, sentiment = "Feedback", "Medium", "Negative"
+            confidence = 80.0
+        else:
+            confidence = 60.0
+    
+    # keyword overrides
+    text_lower = text.lower()
+    if 'refund' in text_lower:
+        intent, priority, sentiment = "Refund", "High", "Negative"
+    elif 'cancel' in text_lower:
+        intent, priority, sentiment = "Cancel", "High", "Neutral"
+    elif 'escalate' in text_lower:
+        intent, priority, sentiment = "Escalation", "High", "Negative"
+    elif 'broken' in text_lower or 'problem' in text_lower:
+        intent = "Issue"
         priority = "Medium"
-    if intent == "Escalation":
-        priority = "High"
+        sentiment = "Negative"
+    
+    return intent, priority, sentiment, confidence, is_spam
 
-    return intent, priority, sentiment, confidence, is_spam_pred
+def get_feedback_text(intent, priority, sentiment):
+    feedback = []
+    
+    if priority == "High":
+        feedback.append("High priority - respond immediately!")
+    elif priority == "Medium":
+        feedback.append("Medium priority - respond within 24 hours")
+    else:
+        feedback.append("Low priority - standard response")
+    
+    if sentiment == "Negative":
+        feedback.append("Customer is unhappy - use empathetic tone")
+    elif sentiment == "Positive":
+        feedback.append("Customer is happy - express gratitude")
+    else:
+        feedback.append("Neutral tone - be professional")
+    
+    return {
+        "summary": f"{priority} priority {intent} email",
+        "action_items": feedback
+    }
 
+# API routes
 
-# -------------------------
-# AUTH ROUTES
-# -------------------------
+@app.route('/')
+def home():
+    return jsonify({"message": "Email AI API running"}), 200
+
 @app.route("/api/signup", methods=["POST"])
-@limiter.limit("10 per hour")  # Prevent mass account creation
 def signup():
-    """Register a new user with hashed password."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+    data = request.json
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    email = data.get("email", "").strip()
 
-        data = request.json
-        username = data.get("username", "").strip()
-        password = data.get("password", "")
-        email = data.get("email", "").strip()
+    if not username or not password or not email:
+        return jsonify({"error": "Missing fields"}), 400
 
-        # ── Input Validation ──
-        if not username or not password or not email:
-            return jsonify({"error": "Missing required fields: username, password, email"}), 400
-        if len(username) < 3 or len(username) > 50:
-            return jsonify({"error": "Username must be between 3 and 50 characters"}), 400
-        if len(password) < 8:
-            return jsonify({"error": "Password must be at least 8 characters"}), 400
-        if len(email) > 254 or "@" not in email:
-            return jsonify({"error": "Invalid email address"}), 400
+    if len(username) < 3:
+        return jsonify({"error": "Username too short"}), 400
+    
+    if len(password) < 8:
+        return jsonify({"error": "Password too short"}), 400
 
-        existing = User.query.filter_by(username=username).first()
-        if existing:
-            return jsonify({"error": "User already exists"}), 400
-        if User.query.filter_by(email=email).first():
-            return jsonify({"error": "Email is already registered"}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "User exists"}), 400
 
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_user = User(username=username, password=hashed_password, email=email)
-        db.session.add(new_user)
-        db.session.commit()
+    hashed = bcrypt.generate_password_hash(password).decode('utf-8')
+    new_user = User(username=username, password=hashed, email=email)
+    db.session.add(new_user)
+    db.session.commit()
 
-        access_token = create_access_token(identity=username)
-        return jsonify({
-            "message": "Signup successful", 
-            "access_token": access_token,
-            "username": username
-        }), 201
-
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
+    token = create_access_token(identity=username)
+    return jsonify({"message": "Signup success", "access_token": token, "username": username}), 201
 
 @app.route("/api/login", methods=["POST"])
-@limiter.limit("20 per hour")  # Prevent brute-force attacks
 def login():
-    """Authenticate existing user and issue JWT."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+    data = request.json
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    otp = data.get("otp")
 
-        data = request.json
-        username = data.get("username", "").strip()
-        password = data.get("password", "")
-        otp = data.get("otp")
-        is_oauth = data.get("is_oauth")
+    user = User.query.filter((User.username == username) | (User.email == username)).first()
 
-        # ── Input Validation ──
-        if not username:
-            return jsonify({"error": "Missing username"}), 400
-
-        user = User.query.filter((User.username == username) | (User.email == username)).first()
-
-        # Handle OAuth login (where identity is already verified by Supabase)
-        if is_oauth:
-            if not user:
-                # Auto-create user for first-time Google logins
-                random_pw = bcrypt.generate_password_hash(secrets.token_hex(16)).decode('utf-8')
-                user = User(username=username, email=username, password=random_pw)
-                db.session.add(user)
-                db.session.commit()
-            
-            if user.two_factor_enabled:
-                if not otp:
-                    return jsonify({"requires_2fa": True, "message": "2FA code required for OAuth"}), 200
-                totp = pyotp.TOTP(user.two_factor_secret)
-                if not totp.verify(str(otp)):
-                    return jsonify({"error": "Invalid 2FA code"}), 401
-            
-            # Successful OAuth authorization on Flask side
-            access_token = create_access_token(identity=user.username)
-            return jsonify({
-                "message": "OAuth Login success", 
-                "access_token": access_token,
-                "username": user.username
-            }), 200
-
-        # Normal Password login
-        if not password:
-            return jsonify({"error": "Missing password"}), 400
-
-        if user and user.password != "oauth_user_no_password" and bcrypt.check_password_hash(user.password, password):
-            if user.two_factor_enabled:
-                if not otp:
-                    return jsonify({"requires_2fa": True, "message": "2FA code required"}), 200
-                totp = pyotp.TOTP(user.two_factor_secret)
-                if not totp.verify(str(otp)):
-                    return jsonify({"error": "Invalid 2FA code"}), 401
-
-            access_token = create_access_token(identity=user.username)
-            return jsonify({
-                "message": "Login success", 
-                "access_token": access_token,
-                "username": user.username
-            }), 200
-
+    if not user:
         return jsonify({"error": "Invalid credentials"}), 401
-    except Exception as e:
-        app.logger.error(f"Unhandled exception in /api/login: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
+
+    if bcrypt.check_password_hash(user.password, password):
+        if user.two_factor_enabled:
+            if not otp:
+                return jsonify({"requires_2fa": True, "message": "2FA required"}), 200
+            totp = pyotp.TOTP(user.two_factor_secret)
+            if not totp.verify(str(otp)):
+                return jsonify({"error": "Invalid OTP"}), 401
+
+        token = create_access_token(identity=user.username)
+        return jsonify({"message": "Login success", "access_token": token, "username": user.username}), 200
+
+    return jsonify({"error": "Invalid credentials"}), 401
 
 @app.route("/api/2fa/setup/<username>", methods=["GET"])
 def setup_2fa(username):
-    """Generate a 2FA secret and return the provisioning QR code URI."""
-    try:
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User.query.filter_by(email=username).first()
-        if not user:
-            user = User(username=username, email=username, password="oauth_user_no_password")
-            db.session.add(user)
-            db.session.commit()
-        
-        if user.two_factor_enabled:
-            return jsonify({"error": "2FA is already enabled"}), 400
-
-        secret = pyotp.random_base32()
-        user.two_factor_secret = secret
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        user = User.query.filter_by(email=username).first()
+    if not user:
+        user = User(username=username, email=username, password="oauth_user_no_password")
+        db.session.add(user)
         db.session.commit()
+    
+    if user.two_factor_enabled:
+        return jsonify({"error": "2FA already enabled"}), 400
 
-        totp = pyotp.TOTP(secret)
-        uri = totp.provisioning_uri(name=user.email or user.username, issuer_name="Customer Email AI")
+    secret = pyotp.random_base32()
+    user.two_factor_secret = secret
+    db.session.commit()
 
-        # Generate QR code
-        import qrcode
-        qr = qrcode.make(uri)
-        buf = BytesIO()
-        qr.save(buf, format='PNG')
-        qr_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name=user.email or user.username, issuer_name="EmailAI")
 
-        return jsonify({
-            "secret": secret,
-            "qr_code": f"data:image/png;base64,{qr_b64}"
-        }), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
+    import qrcode
+    qr = qrcode.make(uri)
+    buf = BytesIO()
+    qr.save(buf, format='PNG')
+    qr_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    return jsonify({"secret": secret, "qr_code": f"data:image/png;base64,{qr_b64}"}), 200
 
 @app.route("/api/2fa/verify", methods=["POST"])
-@limiter.limit("10 per hour")  # Prevent OTP brute-force
 def verify_2fa():
-    """Verify the 2FA OTP and enable 2FA for the user."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
-        data = request.json
-        otp = str(data.get("otp", "")).strip()
-        username = data.get("username", "").strip()
+    data = request.json
+    otp = str(data.get("otp", "")).strip()
+    username = data.get("username", "").strip()
 
-        # ── Input Validation ──
-        if not otp or not username:
-            return jsonify({"error": "Missing OTP code or username"}), 400
-        if not otp.isdigit() or len(otp) != 6:
-            return jsonify({"error": "OTP must be a 6-digit number"}), 400
+    if not otp or not username:
+        return jsonify({"error": "Missing fields"}), 400
 
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User.query.filter_by(email=username).first()
-        if not user or not user.two_factor_secret:
-            return jsonify({"error": "2FA not initiated"}), 400
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        user = User.query.filter_by(email=username).first()
+    if not user or not user.two_factor_secret:
+        return jsonify({"error": "2FA not setup"}), 400
 
-        totp = pyotp.TOTP(user.two_factor_secret)
-        if totp.verify(otp):
-            user.two_factor_enabled = True
-            db.session.commit()
-            return jsonify({"message": "2FA successfully enabled!"}), 200
+    totp = pyotp.TOTP(user.two_factor_secret)
+    if totp.verify(otp):
+        user.two_factor_enabled = True
+        db.session.commit()
+        return jsonify({"message": "2FA enabled"}), 200
 
-        return jsonify({"error": "Invalid OTP code"}), 400
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
+    return jsonify({"error": "Invalid OTP"}), 400
 
 @app.route("/api/2fa/disable", methods=["POST"])
 def disable_2fa():
-    """Disable 2FA for the user."""
-    try:
-        data = request.json
-        username = data.get("username")
-        if not username:
-            return jsonify({"error": "Missing username"}), 400
-            
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User.query.filter_by(email=username).first()
-            
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-            
-        user.two_factor_enabled = False
-        user.two_factor_secret = None
-        db.session.commit()
-        
-        return jsonify({"message": "2FA has been disabled"}), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
-# Custom key for password reset to limit per target email address
-def get_reset_email_key():
-    if request.is_json:
-        return request.json.get("email", get_remote_address())
-    return get_remote_address()
+    data = request.json
+    username = data.get("username")
+    
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        user = User.query.filter_by(email=username).first()
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    user.two_factor_enabled = False
+    user.two_factor_secret = None
+    db.session.commit()
+    
+    return jsonify({"message": "2FA disabled"}), 200
 
 @app.route("/api/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour", key_func=get_reset_email_key)  # Prevent email flooding per user account
 def forgot_password():
-    """Generate a reset token and send an email."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
-        data = request.json
-        email = data.get("email", "").strip()
-        # ── Input Validation ──
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
-        if len(email) > 254 or "@" not in email:
-            return jsonify({"error": "Invalid email address"}), 400
+    data = request.json
+    email = data.get("email", "").strip()
+    
+    if not email:
+        return jsonify({"error": "Email required"}), 400
 
-        user = User.query.filter_by(email=email).first()
-        if user:
-            # Generate a secure token
-            token = secrets.token_urlsafe(32)
-            user.reset_token = token
-            user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
-            db.session.commit()
+    user = User.query.filter_by(email=email).first()
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+        db.session.commit()
 
-            # Send Email
-            reset_link = f"{request.host_url}update-password?token={token}"
-            msg = Message("Password Reset Request - Email AI",
-                          recipients=[email])
-            msg.body = f"Hello {user.username},\n\nYou requested a password reset. Click the link below to set a new password:\n\n{reset_link}\n\nThis link will expire in 1 hour.\n\nIf you did not make this request, please ignore this email."
-            
-            try:
-                mail.send(msg)
-                # Always mask with exactly 7 stars: ra*******19@gmail.com
-                local, domain = email.split("@")
-                masked = local[:2] + "*" * 7 + local[-2:] if len(local) > 4 else local[:1] + "*" * 3
-                masked_email = f"{masked}@{domain}"
-                return jsonify({"message": f"Reset link sent to {masked_email}. Check your inbox and spam folder.", "masked_email": masked_email}), 200
-            except Exception as mail_err:
-                app.logger.error(f"Mail delivery failed: {mail_err}", exc_info=True)
-                return jsonify({"error": "Failed to send email. Please check server SMTP configuration."}), 500
+        reset_link = f"http://localhost:5173/update-password?token={token}"
+        msg = Message("Password Reset", recipients=[email])
+        msg.body = f"Click here to reset: {reset_link}"
+        
+        try:
+            mail.send(msg)
+            return jsonify({"message": "Reset link sent"}), 200
+        except:
+            return jsonify({"error": "Email failed"}), 500
 
-        # No local account found — could be a Google OAuth user
-        return jsonify({"message": "No local account found with that email.", "user_found": False}), 200
-
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
+    return jsonify({"message": "If email exists, link sent"}), 200
 
 @app.route("/api/reset-password", methods=["POST"])
 def reset_password():
-    """Reset password using a valid token."""
-    try:
-        data = request.json
-        token = data.get("token")
-        new_password = data.get("password")
+    data = request.json
+    token = data.get("token")
+    new_password = data.get("password")
 
-        if not token or not new_password:
-            return jsonify({"error": "Missing token or password"}), 400
+    if not token or not new_password:
+        return jsonify({"error": "Missing fields"}), 400
 
-        user = User.query.filter_by(reset_token=token).first()
-        
-        if not user or user.reset_token_expiry < datetime.utcnow():
-            return jsonify({"error": "Invalid or expired token"}), 400
+    user = User.query.filter_by(reset_token=token).first()
+    
+    if not user or user.reset_token_expiry < datetime.utcnow():
+        return jsonify({"error": "Invalid token"}), 400
 
-        # Update password
-        user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
-        user.reset_token = None
-        user.reset_token_expiry = None
-        db.session.commit()
+    user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    user.reset_token = None
+    user.reset_token_expiry = None
+    db.session.commit()
 
-        return jsonify({"message": "Password updated successfully"}), 200
+    return jsonify({"message": "Password updated"}), 200
 
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
-
-# -------------------------
-# EMAIL ANALYSIS
-# -------------------------
 @app.route("/api/analyze", methods=["POST"])
-@jwt_required()  # ── Authorization: must be logged in to analyze
-@limiter.limit("30 per hour")  # Prevent ML model abuse
-def analyze():
-    """Analyze email content for intent, priority, sentiment, and spam status."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
-
-        data = request.json
-        if not data or not data.get("email"):
-            return jsonify({"error": "Email content is required"}), 400
-
-        email = data.get("email", "").strip()
-
-        # ── Input Validation ──
-        if len(email) < 10:
-            return jsonify({"error": "Email content is too short (min 10 characters)"}), 400
-        if len(email) > 10000:
-            return jsonify({"error": "Email content is too long (max 10,000 characters)"}), 400
-
-        # ── Authorization: get authenticated user from JWT, not from request body ──
-        user = get_jwt_identity()
-
-        intent, priority, sentiment, confidence, is_spam = analyze_email(email)
-
-        detailed_feedback = get_detailed_feedback(intent, priority, sentiment)
-        
-        if is_spam:
-            detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
-            intent = "Spam"  # Set intent to Spam for clarity in the UI
-
-        record = EmailHistory(
-            user=user,
-            email=email,
-            intent=intent,
-            priority=priority,
-            sentiment=sentiment,
-            is_spam=is_spam
-        )
-        db.session.add(record)
-        db.session.commit()
-
-        result = {
-            "email": email,
-            "intent": intent,
-            "priority": priority,
-            "sentiment": sentiment,
-            "confidence": confidence,
-            "is_spam": is_spam,
-            "detailed_feedback": detailed_feedback,
-            "mode": "batch",
-            "analyzed_at": datetime.utcnow().isoformat(),
-            "feedback_url": f"/api/feedback/{record.id}"
-        }
-
-        result["record_id"] = record.id
-
-        return jsonify(result), 200
-
-    except Exception as e:
-        app.logger.error(f"Error during email analysis: {e}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "Failed to analyze email due to an internal error."}), 500
-
-
-# -------------------------
-# EMAIL INTAKE (ASYNC PROCESSING)
-# -------------------------
-@app.route("/api/email/intake", methods=["POST"])
 @jwt_required()
-@limiter.limit("30 per hour")
-def email_intake():
-    """Receive email and queue it for async processing. Returns 202 immediately."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+def analyze():
+    data = request.json
+    email = data.get("email", "").strip()
+    user = get_jwt_identity()
 
-        data = request.json
-        if not data or not data.get("email"):
-            return jsonify({"error": "Email content is required"}), 400
+    if not email or len(email) < 10:
+        return jsonify({"error": "Email too short"}), 400
 
-        email = data.get("email", "").strip()
-        email_id = data.get("email_id")
+    intent, priority, sentiment, confidence, is_spam = analyze_email(email)
+    feedback = get_feedback_text(intent, priority, sentiment)
 
-        if len(email) < 10:
-            return jsonify({"error": "Email content is too short (min 10 characters)"}), 400
-        if len(email) > 10000:
-            return jsonify({"error": "Email content is too long (max 10,000 characters)"}), 400
+    record = EmailHistory(
+        user=user,
+        email=email,
+        intent=intent,
+        priority=priority,
+        sentiment=sentiment,
+        is_spam=is_spam
+    )
+    db.session.add(record)
+    db.session.commit()
 
-        user = get_jwt_identity()
-        
-        if not email_id:
-            email_id = f"email_{int(datetime.utcnow().timestamp() * 1000)}"
+    result = {
+        "email": email,
+        "intent": intent,
+        "priority": priority,
+        "sentiment": sentiment,
+        "confidence": confidence,
+        "is_spam": is_spam,
+        "detailed_feedback": feedback,
+        "record_id": record.id,
+        "analyzed_at": datetime.utcnow().isoformat()
+    }
 
-        try:
-            import worker
-            worker.enqueue_email({
-                "email_id": email_id,
-                "email": email,
-                "user": user,
-                "timestamp": datetime.utcnow().isoformat()
-            })
-            app.logger.info(f"Email {email_id} queued for processing")
-        except Exception as q_err:
-            app.logger.warning(f"Queue not available, falling back to sync processing: {q_err}")
-            intent, priority, sentiment, confidence, is_spam = analyze_email(email)
-            try:
-                classification = Classification(
-                    email_id=email_id,
-                    category=intent,
-                    confidence=confidence,
-                    processed_at=datetime.utcnow(),
-                    mode="realtime"
-                )
-                db.session.add(classification)
-                db.session.commit()
-            except Exception as db_err:
-                app.logger.warning(f"Failed to save classification: {db_err}")
+    return jsonify(result), 200
 
-        return jsonify({
-            "status": "accepted",
-            "email_id": email_id,
-            "message": "Email queued for processing",
-            "mode": "async"
-        }), 202
-
-    except Exception as e:
-        app.logger.error(f"Error in email intake: {e}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "Failed to queue email."}), 500
-
-
-# -------------------------
-# REALTIME CLASSIFICATION
-# -------------------------
 @app.route("/api/classify", methods=["POST"])
 @jwt_required()
-@limiter.limit("30 per hour")
-def classify_email_realtime():
-    """Realtime email classification triggered on email arrival."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+def classify():
+    data = request.json
+    email = data.get("email", "").strip()
+    email_id = data.get("email_id")
+    user = get_jwt_identity()
 
-        data = request.json
-        if not data or not data.get("email"):
-            return jsonify({"error": "Email content is required"}), 400
+    if not email_id:
+        email_id = f"email_{int(datetime.utcnow().timestamp() * 1000)}"
 
-        email = data.get("email", "").strip()
-        email_id = data.get("email_id")
+    intent, priority, sentiment, confidence, is_spam = analyze_email(email)
 
-        if len(email) < 10:
-            return jsonify({"error": "Email content is too short (min 10 characters)"}), 400
-        if len(email) > 10000:
-            return jsonify({"error": "Email content is too long (max 10,000 characters)"}), 400
+    classification = Classification(
+        email_id=email_id,
+        category=intent,
+        confidence=confidence,
+        processed_at=datetime.utcnow(),
+        mode="realtime"
+    )
+    db.session.add(classification)
+    
+    record = EmailHistory(
+        user=user,
+        email=email,
+        intent=intent,
+        priority=priority,
+        sentiment=sentiment,
+        is_spam=is_spam
+    )
+    db.session.add(record)
+    db.session.commit()
 
-        user = get_jwt_identity()
-        
-        if not email_id:
-            email_id = f"email_{int(datetime.utcnow().timestamp() * 1000)}"
+    return jsonify({
+        "email_id": email_id,
+        "intent": intent,
+        "priority": priority,
+        "sentiment": sentiment,
+        "confidence": confidence,
+        "is_spam": is_spam,
+        "record_id": record.id
+    }), 200
 
-        for attempt in range(3):
-            try:
-                intent, priority, sentiment, confidence, is_spam = analyze_email(email)
-                
-                result = {
-                    "email_id": email_id,
-                    "category": intent,
-                    "confidence": confidence,
-                    "processed_at": datetime.utcnow().isoformat(),
-                    "mode": "realtime",
-                    "intent": intent,
-                    "priority": priority,
-                    "sentiment": sentiment,
-                    "is_spam": is_spam,
-                    "feedback_url": f"/api/feedback/{email_id}"
-                }
-                
-                try:
-                    classification = Classification(
-                        email_id=email_id,
-                        category=intent,
-                        confidence=confidence,
-                        processed_at=datetime.utcnow(),
-                        mode="realtime"
-                    )
-                    db.session.add(classification)
-                    db.session.commit()
-                except Exception as db_err:
-                    app.logger.warning(f"Failed to save classification: {db_err}")
-
-                record = EmailHistory(
-                    user=user,
-                    email=email,
-                    intent=intent,
-                    priority=priority,
-                    sentiment=sentiment,
-                    is_spam=is_spam
-                )
-                db.session.add(record)
-                db.session.commit()
-                result["record_id"] = record.id
-
-                return jsonify(result), 200
-                
-            except Exception as inner_e:
-                if attempt == 2:
-                    app.logger.error(f"Classification failed after 3 attempts: {inner_e}", exc_info=True)
-                    return jsonify({"error": "Internal Server Error", "message": f"Classification failed: {str(inner_e)}"}), 500
-                import time
-                time.sleep(0.5 * (attempt + 1))
-
-    except Exception as e:
-        app.logger.error(f"Error in realtime classification: {e}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "Failed to classify email."}), 500
-
-
-# -------------------------
-# SENTIMENT FEEDBACK
-# -------------------------
 @app.route("/api/feedback", methods=["POST"])
 @jwt_required()
-@limiter.limit("60 per hour")
-def submit_sentiment_feedback():
-    """Record user's sentiment correction for feedback loop."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+def submit_feedback():
+    data = request.json
+    record_id = data.get("id")
+    feedback = data.get("feedback")
 
-        data = request.json
-        email_id = data.get("email_id")
-        predicted_sentiment = data.get("predicted_sentiment")
-        correct_sentiment = data.get("correct_sentiment")
-        user_id = data.get("user_id")
+    if not record_id or feedback not in ['helpful', 'not_helpful']:
+        return jsonify({"error": "Invalid input"}), 400
 
-        if not email_id or not predicted_sentiment or not correct_sentiment:
-            return jsonify({"error": "Missing required fields: email_id, predicted_sentiment, correct_sentiment"}), 400
+    record = EmailHistory.query.get(record_id)
+    if not record:
+        return jsonify({"error": "Record not found"}), 404
 
-        valid_sentiments = ["Positive", "Negative", "Neutral"]
-        if predicted_sentiment.capitalize() not in valid_sentiments:
-            return jsonify({"error": f"Invalid predicted_sentiment. Must be one of: {valid_sentiments}"}), 400
-        if correct_sentiment.capitalize() not in valid_sentiments:
-            return jsonify({"error": f"Invalid correct_sentiment. Must be one of: {valid_sentiments}"}), 400
+    current_user = get_jwt_identity()
+    if record.user != current_user:
+        return jsonify({"error": "Unauthorized"}), 403
 
-        feedback = SentimentFeedback(
-            email_id=email_id,
-            predicted_sentiment=predicted_sentiment.capitalize(),
-            correct_sentiment=correct_sentiment.capitalize(),
-            user_id=user_id or get_jwt_identity()
-        )
-        db.session.add(feedback)
-        db.session.commit()
+    record.user_feedback = feedback
+    db.session.commit()
+    return jsonify({"message": "Feedback recorded"}), 200
 
-        feedback_count = SentimentFeedback.query.count()
-        
-        if feedback_count % 100 == 0:
-            try:
-                from tasks import retrain_model_task
-                retrain_model_task.delay(feedback_count)
-                try:
-                    retrain_log = RetrainLog(
-                        feedback_count=feedback_count,
-                        status="triggered"
-                    )
-                    db.session.add(retrain_log)
-                    db.session.commit()
-                except:
-                    pass
-            except Exception as retrain_err:
-                app.logger.warning(f"Failed to trigger retrain task: {retrain_err}")
-
-        return jsonify({
-            "status": "recorded",
-            "email_id": email_id,
-            "timestamp": datetime.utcnow().isoformat()
-        }), 200
-
-    except Exception as e:
-        app.logger.error(f"Error in sentiment feedback: {e}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "Failed to record feedback."}), 500
-
-
-@app.route("/api/feedback/stats", methods=["GET"])
-@jwt_required()
-def get_feedback_stats():
-    """Get feedback statistics for model accuracy."""
-    try:
-        total_feedback = SentimentFeedback.query.count()
-        
-        if total_feedback == 0:
-            return jsonify({
-                "total_feedback": 0,
-                "correct_predictions": 0,
-                "accuracy_rate": 0,
-                "breakdown": {}
-            }), 200
-
-        correct_count = SentimentFeedback.query.filter(
-            SentimentFeedback.predicted_sentiment == SentimentFeedback.correct_sentiment
-        ).count()
-        
-        accuracy_rate = round((correct_count / total_feedback) * 100, 2) if total_feedback > 0 else 0
-        
-        breakdown = {}
-        sentiments = ["Positive", "Negative", "Neutral"]
-        for sent in sentiments:
-            total = SentimentFeedback.query.filter_by(correct_sentiment=sent).count()
-            correct = SentimentFeedback.query.filter_by(
-                correct_sentiment=sent,
-                predicted_sentiment=sent
-            ).count()
-            breakdown[sent] = {
-                "total": total,
-                "correct": correct,
-                "accuracy": round((correct / total) * 100, 2) if total > 0 else 0
-            }
-
-        return jsonify({
-            "total_feedback": total_feedback,
-            "correct_predictions": correct_count,
-            "accuracy_rate": accuracy_rate,
-            "breakdown": breakdown
-        }), 200
-
-    except Exception as e:
-        app.logger.error(f"Error in feedback stats: {e}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "Failed to get stats."}), 500
-
-
-# -------------------------
-# HISTORY ROUTE
-# -------------------------
 @app.route("/api/history/<user>", methods=["GET"])
-@jwt_required(optional=True)
-def get_history(user):
-    """Retrieve history for a specific user. Secures local user data via JWT."""
-    try:
-        current_identity = get_jwt_identity()
-        
-        # Enforce that users can only see their own history if they used local auth
-        if current_identity and current_identity != user:
-             return jsonify({"error": "Unauthorized access to user history"}), 403
-             
-        records = EmailHistory.query.filter_by(user=user).order_by(EmailHistory.id.desc()).all()
-
-        result = []
-        for r in records:
-            is_spam = r.is_spam if r.is_spam is not None else False
-            detailed_feedback = get_detailed_feedback(r.intent, r.priority, r.sentiment)
-            
-            if is_spam:
-                detailed_feedback["action_items"].insert(0, "🚨 SPAM DETECTED: This email has been flagged as potential spam or promotional content.")
-                
-            result.append({
-                "id": r.id,
-                "email": r.email,
-                "intent": r.intent,
-                "priority": r.priority,
-                "sentiment": r.sentiment,
-                "is_spam": is_spam,
-                "created_at": r.created_at.strftime("%d %b %Y, %I:%M %p") if r.created_at else None,
-                "user_feedback": r.user_feedback,
-                "detailed_feedback": detailed_feedback
-            })
-
-        return jsonify(result), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
-@app.route("/api/admin/history", methods=["GET"])
 @jwt_required()
-def get_admin_history():
-    """Retrieve global email analysis history for admin auditing."""
-    try:
-        current_identity = get_jwt_identity()
-        if current_identity != "admin":
-             return jsonify({"error": "Unauthorized access"}), 403
-             
-        records = EmailHistory.query.order_by(EmailHistory.id.desc()).all()
-        result = []
-        for r in records:
-            result.append({
-                "id": r.id,
-                "user": r.user,
-                "email": r.email,
-                "intent": r.intent,
-                "priority": r.priority,
-                "sentiment": r.sentiment
-            })
-        return jsonify(result), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
+def get_history(user):
+    current = get_jwt_identity()
+    if current != user:
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    records = EmailHistory.query.filter_by(user=user).order_by(EmailHistory.id.desc()).all()
 
-# -------------------------
-# ACCOUNT MANAGEMENT ROUTES
-# -------------------------
+    result = []
+    for r in records:
+        result.append({
+            "id": r.id,
+            "email": r.email,
+            "intent": r.intent,
+            "priority": r.priority,
+            "sentiment": r.sentiment,
+            "is_spam": r.is_spam,
+            "created_at": r.created_at.strftime("%d %b %Y, %I:%M %p") if r.created_at else None,
+            "user_feedback": r.user_feedback
+        })
+
+    return jsonify(result), 200
+
+@app.route("/api/export/<user>")
+@jwt_required()
+def export_csv(user):
+    current = get_jwt_identity()
+    if current != user:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    records = EmailHistory.query.filter_by(user=user).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Date', 'Email', 'Intent', 'Sentiment', 'Priority', 'Spam'])
+
+    for r in records:
+        writer.writerow([
+            r.id,
+            r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "N/A",
+            r.email[:100],
+            r.intent,
+            r.sentiment,
+            r.priority,
+            "Yes" if r.is_spam else "No"
+        ])
+
+    csv_data = output.getvalue()
+    output.close()
+
+    from flask import make_response
+    response = make_response(csv_data)
+    response.headers["Content-Disposition"] = f"attachment; filename=history_{user}.csv"
+    response.headers["Content-Type"] = "text/csv"
+    return response
+
 @app.route("/api/user/details/<user_id>", methods=["GET"])
-@jwt_required(optional=True)
-def get_user_details(user_id):
-    """Retrieve user profile details including 2FA status."""
-    try:
-        user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+@jwt_required()
+def get_user(user_id):
+    user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-        # Authorization: if a JWT is present, verify it belongs to this user
-        # (identity can be username; user_id can be email for OAuth users)
-        current_identity = get_jwt_identity()
-        if current_identity and current_identity != user.username and current_identity != user.email:
-            return jsonify({"error": "Unauthorized access to user details"}), 403
-
-        return jsonify({
-            "username": user.username,
-            "email": user.email,
-            "fullname": user.fullname,
-            "bio": user.bio,
-            "profile_pic": user.profile_pic,
-            "two_factor_enabled": user.two_factor_enabled
-        }), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
+    return jsonify({
+        "username": user.username,
+        "email": user.email,
+        "fullname": user.fullname,
+        "bio": user.bio,
+        "profile_pic": user.profile_pic,
+        "two_factor_enabled": user.two_factor_enabled
+    }), 200
 
 @app.route("/api/user/details/<user_id>", methods=["PUT"])
-@jwt_required(optional=True)
-def update_user_details(user_id):
-    """Update user profile details such as name, bio, and profile picture."""
-    try:
-        user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
+@jwt_required()
+def update_user(user_id):
+    user = User.query.filter((User.username == user_id) | (User.email == user_id)).first()
+    
+    if not user:
+        user = User(username=user_id, email=user_id, password="oauth_user_no_password")
+        db.session.add(user)
 
-        # Authorization: if a JWT is present, verify it belongs to this user
-        current_identity = get_jwt_identity()
-        if current_identity and user and current_identity != user.username and current_identity != user.email:
-            return jsonify({"error": "Unauthorized access"}), 403
-
-        # Auto-create profile record for users who signed in via Google (Supabase)
-        if not user:
-            random_pw = bcrypt.generate_password_hash(secrets.token_hex(16)).decode('utf-8')
-            user = User(username=user_id, email=user_id, password=random_pw)
-            db.session.add(user)
-
-        data = request.json
-        if "fullname" in data:
-            user.fullname = data["fullname"]
-        if "bio" in data:
-            user.bio = data["bio"]
-        if "profile_pic" in data:
-            user.profile_pic = data["profile_pic"]
-            
-        db.session.commit()
-        return jsonify({"message": "Details updated successfully"}), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
+    data = request.json
+    if "fullname" in data:
+        user.fullname = data["fullname"]
+    if "bio" in data:
+        user.bio = data["bio"]
+    if "profile_pic" in data:
+        user.profile_pic = data["profile_pic"]
+        
+    db.session.commit()
+    return jsonify({"message": "Updated"}), 200
 
 @app.route("/api/user/password", methods=["PUT"])
 @jwt_required()
-def update_user_password():
-    """Change the user password with verification of the current password."""
-    try:
-        current_identity = get_jwt_identity()
-        user = User.query.filter_by(username=current_identity).first()
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-            
-        data = request.json
-        current_password = data.get("current_password")
-        new_password = data.get("new_password")
-        
-        if not current_password or not new_password:
-            return jsonify({"error": "Missing passwords"}), 400
-            
-        if not bcrypt.check_password_hash(user.password, current_password):
-            return jsonify({"error": "Incorrect current password"}), 401
-            
-        user.password = bcrypt.generate_password_hash(new_password).decode("utf-8")
-        db.session.commit()
-        
-        return jsonify({"message": "Password updated successfully"}), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
-# -------------------------
-# USER FEEDBACK ROUTE
-# -------------------------
-@app.route("/api/feedback", methods=["POST"])
-@jwt_required()  # ── Authorization: must be logged in to submit feedback
-@limiter.limit("60 per hour")
-def submit_feedback():
-    """Record user's thumbs up/down on an analysis result."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
-
-        data = request.json
-        record_id = data.get("id")
-        feedback = data.get("feedback")  # 'helpful' or 'not_helpful'
-
-        # ── Input Validation ──
-        if not record_id or not isinstance(record_id, int):
-            return jsonify({"error": "Invalid record ID"}), 400
-        if feedback not in ['helpful', 'not_helpful']:
-            return jsonify({"error": "feedback must be 'helpful' or 'not_helpful'"}), 400
-
-        record = EmailHistory.query.get(record_id)
-        if not record:
-            return jsonify({"error": "Record not found"}), 404
-
-        # ── Authorization: ensure user owns this record ──
-        current_user = get_jwt_identity()
-        if record.user != current_user:
-            return jsonify({"error": "Unauthorized: you can only provide feedback on your own records"}), 403
-
-        record.user_feedback = feedback
-        db.session.commit()
-        return jsonify({"message": "Feedback recorded. Thank you!"}), 200
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
-
-# -------------------------
-# CSV EXPORT ROUTE
-# -------------------------
-@app.route("/api/export/<user>")
-@jwt_required()
-@limiter.limit("10 per hour")
-def export_csv(user):
-    """Securely export user's audit history as a downloadable CSV file."""
-    try:
-        # Resolve user identity (handle case where 'user' might be email instead of username)
-        current_identity = get_jwt_identity()
-        
-        # Verify ownership: current_identity must match the requested user or the owner of the email
-        target_user = User.query.filter((User.username == user) | (User.email == user)).first()
-        
-        if not target_user or (current_identity != target_user.username):
-            app.logger.warning(f"Unauthorized export attempt by {current_identity} for {user}")
-            return jsonify({"error": "Unauthorized: you can only export your own data"}), 403
+def change_password():
+    current = get_jwt_identity()
+    user = User.query.filter_by(username=current).first()
     
-        records = EmailHistory.query.filter_by(user=target_user.username).all()
+    data = request.json
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
     
-        if not records:
-            return jsonify({"error": "No history records found to export"}), 404
+    if not bcrypt.check_password_hash(user.password, current_password):
+        return jsonify({"error": "Wrong password"}), 401
     
-        # Generate CSV data in memory
-        output = io.StringIO()
-        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
-        
-        # Write header with enriched columns
-        writer.writerow(['Record ID', 'Date', 'Email Content', 'Intent', 'Sentiment', 'Priority', 'Is Spam', 'User Feedback'])
+    user.password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+    db.session.commit()
     
-        # Write rows
-        for r in records:
-            writer.writerow([
-                str(r.id),
-                r.created_at.strftime("%Y-%m-%d %H:%M:%S") if r.created_at else "N/A",
-                str(r.email).replace('\n', ' ').strip()[:5000],  # Clean up and limit length
-                str(r.intent),
-                str(r.sentiment),
-                str(r.priority),
-                "Yes" if r.is_spam else "No",
-                str(r.user_feedback) if r.user_feedback else "None"
-            ])
-    
-        csv_data = output.getvalue()
-        output.close()
-    
-        # Return as robust file download response
-        from flask import make_response
-        response = make_response(csv_data)
-        response.headers["Content-Disposition"] = f"attachment; filename=email_audit_history_{target_user.username}.csv"
-        response.headers["Content-Type"] = "text/csv; charset=utf-8"
-        response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        
-        return response
-        
-    except Exception as e:
-        app.logger.error(f"Export CSV Error: {str(e)}", exc_info=True)
-        return jsonify({"error": "Export failed", "message": str(e)}), 500
+    return jsonify({"message": "Password changed"}), 200
 
-
-# -------------------------
-# SERVE REACT BUILD
-# -------------------------
-@app.route("/", defaults={'path': ''})
-@app.route("/<path:path>")
-def serve(path):
-    """Serve the unified frontend application from the backend."""
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, "index.html")
-
-
-# -------------------------
-# RUN APP
-# -------------------------
-
-# -------------------------
-# RESPONSE GENERATION
-# -------------------------
 @app.route("/api/generate-response", methods=["POST"])
 def generate_response():
-    """Generate an AI contextual response draft based on intent, sentiment, and priority."""
     data = request.json
     intent = data.get("intent", "").lower()
     sentiment = data.get("sentiment", "").lower()
-    priority = data.get("priority", "").lower()  # Fix: was missing, causing NameError
+    priority = data.get("priority", "").lower()
 
-    # Simple rule-based logic for now
-    if "refund" in intent or "cancel" in intent:
+    if "refund" in intent:
         if "negative" in sentiment:
-            response = "Hi there,\n\nI am so sorry to hear about the frustration you've experienced. I completely understand why you're upset. \n\nI have immediately escalated your refund request to our finance team and flagged it for high-priority processing so we can get your money back to you as quickly as possible. You will receive a final confirmation email within 24 hours once the transaction clears.\n\nAgain, my sincerest apologies for the inconvenience.\n\nBest regards,\nCustomer Success Team"
+            response = "Hi,\n\nI'm sorry about the issue. I've escalated your refund request to the finance team. You'll get your money back within 24 hours.\n\nSorry for the inconvenience.\n\nBest"
         else:
-            response = "Hi there,\n\nThanks for reaching out! I've received your request regarding a refund. \n\nI've gone ahead and submitted the details to our billing department under standard processing. You can expect to see the funds returned to your original payment method in the next 3-5 business days depending on your bank.\n\nLet me know if you need help with anything else!\n\nBest,\nCustomer Success Team"
-    
-    elif "feedback" in intent or "review" in intent:
-        if "positive" in sentiment:
-            response = "Hi there,\n\nThank you so much for taking the time to share your experience! We are absolutely thrilled to hear that you're loving everything.\n\nCustomer feedback like yours is exactly what motivates our team. If you have a free moment, we'd be honored if you shared your review on our public page as well!\n\nThanks for being an awesome customer.\n\nBest,\nThe Customer Success Team"
-        else:
-             response = "Hi there,\n\nThank you for reaching out and providing this context. I'm really sorry to hear that we didn't hit the mark this time.\n\nWe take your feedback very seriously, and I have forwarded your message directly to our product team so we can review exactly what went wrong and ensure it doesn't happen again.\n\nWe appreciate your patience while we work on improving.\n\nSincerely,\nCustomer Success Team"
+            response = "Hi,\n\nThanks for reaching out. I've submitted your refund request to billing. It will be processed in 3-5 business days.\n\nBest"
 
-    elif "issue" in intent or "support" in intent or "help" in intent:
-         if priority == "high" or "negative" in sentiment:
-            response = "Hi there,\n\nThank you for reaching out. I'm very sorry to hear that you are experiencing this issue—I know how disruptive this must be.\n\nI have flagged this ticket as critical and escalated it directly to our Tier 2 Technical Support team. An engineer is looking into this right now and will follow up with you directly within the next hour with an update or resolution.\n\nThank you for your patience while we get this sorted out for you.\n\nBest regards,\nTechnical Support Team"
-         else:
-            response = "Hi there,\n\nThanks for reaching out to support! We've received your ticket.\n\nOur team is currently reviewing your request and will get back to you with a solution or next steps within our standard 24-hour response window. \n\nIf you have any additional screenshots or details to add, feel free to reply directly to this email.\n\nBest,\nSupport Team"
-            
-    elif "escalation" in intent:
-        response = "Dear Customer,\n\nThis is an automated confirmation that your message has been received and escalated immediately to our Executive Escalations Team.\n\nDue to the nature of your request, a senior account manager will review your file and respond to you personally by the end of the business day.\n\nSincerely,\nSenior Escalations Team"
-            
+    elif "issue" in intent or "problem" in intent:
+        if priority == "high" or "negative" in sentiment:
+            response = "Hi,\n\nI'm sorry you're having this problem. I've escalated this to our technical team. They will contact you within 1 hour.\n\nBest"
+        else:
+            response = "Hi,\n\nThanks for letting us know. We've created a support ticket. Our team will respond within 24 hours.\n\nBest"
+
+    elif "feedback" in intent:
+        if "positive" in sentiment:
+            response = "Hi,\n\nThank you so much for the kind feedback! We're glad you're happy with our service.\n\nBest"
+        else:
+            response = "Hi,\n\nThank you for your feedback. We're sorry to hear about your experience. We will work to improve.\n\nBest"
+
     else:
-        # Generic fallback
-        response = "Hi there,\n\nThank you for reaching out to us. We have received your message and are currently reviewing your account.\n\nOne of our specialists will get back to you as soon as possible with more information.\n\nBest regards,\nCustomer Support"
+        response = "Hi,\n\nThank you for contacting us. We will get back to you soon.\n\nBest"
 
     return jsonify({"response": response})
 
-
 @app.route("/api/feedback/correct", methods=["POST"])
-@jwt_required()  # ── Authorization: must be logged in
-@limiter.limit("30 per hour")
-def correct_feedback():
-    """Receive user's corrected classification to retrain the model."""
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+@jwt_required()
+def correct_record():
+    data = request.json
+    record_id = data.get("id")
+    intent = data.get("intent", "").strip()
+    sentiment = data.get("sentiment", "").strip()
+    priority = data.get("priority", "").strip()
 
-        data = request.json
-        record_id = data.get("id")
-        intent = data.get("intent", "").strip()
-        sentiment = data.get("sentiment", "").strip()
-        priority = data.get("priority", "").strip()
+    record = EmailHistory.query.get(record_id)
+    if not record:
+        return jsonify({"error": "Not found"}), 404
 
-        # ── Input Validation ──
-        if not record_id or not isinstance(record_id, int):
-            return jsonify({"error": "Invalid record ID"}), 400
-        valid_intents = ["Query", "Refund", "Feedback", "Issue", "Escalation", "Spam", "Cancel"]
-        valid_sentiments = ["Positive", "Negative", "Neutral"]
-        valid_priorities = ["High", "Medium", "Low"]
-        if intent.capitalize() not in valid_intents:
-            return jsonify({"error": f"Invalid intent. Must be one of: {valid_intents}"}), 400
-        if sentiment.capitalize() not in valid_sentiments:
-            return jsonify({"error": f"Invalid sentiment. Must be one of: {valid_sentiments}"}), 400
-        if priority.capitalize() not in valid_priorities:
-            return jsonify({"error": f"Invalid priority. Must be one of: {valid_priorities}"}), 400
+    current = get_jwt_identity()
+    if record.user != current:
+        return jsonify({"error": "Unauthorized"}), 403
 
-        record = EmailHistory.query.get(record_id)
-        if not record:
-            return jsonify({"error": "Record not found"}), 404
+    record.intent = intent.capitalize()
+    record.sentiment = sentiment.capitalize()
+    record.priority = priority.capitalize()
+    record.user_feedback = 'corrected'
+    db.session.commit()
 
-        # ── Authorization: users can only correct their own records ──
-        current_user = get_jwt_identity()
-        if record.user != current_user:
-            return jsonify({"error": "Unauthorized: you can only correct your own records"}), 403
-
-        record.intent = intent.capitalize()
-        record.sentiment = sentiment.capitalize()
-        record.priority = priority.capitalize()
-        record.user_feedback = 'corrected'
-        db.session.commit()
-
-        import os, csv
-        csv_path = os.path.join(os.path.dirname(__file__), "../dataset", "emails.csv")
-        with open(csv_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                record.email,
-                intent.lower(),
-                sentiment.capitalize(),
-                priority.capitalize(),
-                "Urgent" if priority.lower() == "high" else "Normal",
-                "support"
-            ])
-
-        return jsonify({"message": "Correction recorded and model training dataset updated!"}), 200
-
-    except Exception as e:
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
+    return jsonify({"message": "Corrected"}), 200
 
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-        # Migrate new columns safely
-        try:
-            from sqlalchemy import text
-            with db.engine.connect() as conn:
-                for col_sql in [
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100)',
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP',
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT',
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS fullname VARCHAR(150)',
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS bio TEXT',
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(32)',
-                    'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false',
-                    'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()',
-                    'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS user_feedback VARCHAR(20)',
-                    'ALTER TABLE email_history ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT false',
-                ]:
-                    conn.execute(text(col_sql))
-                conn.commit()
-            print("✅ DB migration complete.")
-        except Exception as e:
-            app.logger.warning(f"Migration note: {e}")
         
-        # Create new tables for classifications and feedback
         try:
             from sqlalchemy import text
             with db.engine.connect() as conn:
-                conn.execute(text('''
-                    CREATE TABLE IF NOT EXISTS classification (
-                        id SERIAL PRIMARY KEY,
-                        email_id VARCHAR(100) NOT NULL,
-                        category VARCHAR(50) NOT NULL,
-                        confidence FLOAT NOT NULL,
-                        processed_at TIMESTAMP DEFAULT now(),
-                        mode VARCHAR(20) NOT NULL
-                    )
-                '''))
-                conn.execute(text('''
-                    CREATE INDEX IF NOT EXISTS idx_classification_email_id ON classification(email_id)
-                '''))
-                conn.execute(text('''
-                    CREATE TABLE IF NOT EXISTS sentiment_feedback (
-                        id SERIAL PRIMARY KEY,
-                        email_id VARCHAR(100) NOT NULL,
-                        predicted_sentiment VARCHAR(20) NOT NULL,
-                        correct_sentiment VARCHAR(20) NOT NULL,
-                        user_id VARCHAR(100),
-                        created_at TIMESTAMP DEFAULT now()
-                    )
-                '''))
-                conn.execute(text('''
-                    CREATE TABLE IF NOT EXISTS retrain_log (
-                        id SERIAL PRIMARY KEY,
-                        triggered_at TIMESTAMP DEFAULT now(),
-                        feedback_count INTEGER NOT NULL,
-                        status VARCHAR(20) NOT NULL
-                    )
-                '''))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100)'))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP'))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT'))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS fullname VARCHAR(150)'))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS bio TEXT'))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(32)'))
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false'))
+                conn.execute(text('ALTER TABLE email_history ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT false'))
                 conn.commit()
-            print("✅ New tables created successfully.")
+            print("DB ready")
         except Exception as e:
-            app.logger.warning(f"New tables note: {e}")
+            print(f"Migration: {e}")
+    
     app.run(debug=False)
-
-
