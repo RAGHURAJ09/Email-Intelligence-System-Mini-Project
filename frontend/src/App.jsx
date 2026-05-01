@@ -48,8 +48,8 @@ export default function App() {
             } else if (data.access_token) {
               localStorage.setItem('access_token', data.access_token);
               localStorage.setItem('user', email);
-              // Optional: reload if needed to update UI context
-              // window.location.reload(); 
+              // Redirect to home after successful OAuth login
+              window.location.href = '/';
             }
           }
         } catch (e) {

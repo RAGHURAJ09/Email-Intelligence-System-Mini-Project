@@ -349,12 +349,36 @@ def login():
     username = data.get("username", "").strip()
     password = data.get("password", "")
     otp = data.get("otp")
+    is_oauth = data.get("is_oauth", False)
 
     user = User.query.filter((User.username == username) | (User.email == username)).first()
+
+    # Auto-create user for OAuth if not exists
+    if not user and is_oauth:
+        user = User(
+            username=username,
+            email=username,
+            password=bcrypt.generate_password_hash("oauth_user_no_password").decode('utf-8')
+        )
+        db.session.add(user)
+        db.session.commit()
 
     if not user:
         return jsonify({"error": "Invalid credentials"}), 401
 
+    # OAuth login (Google/Supabase) - skip password check
+    if is_oauth:
+        if user.two_factor_enabled:
+            if not otp:
+                return jsonify({"requires_2fa": True, "message": "2FA required"}), 200
+            totp = pyotp.TOTP(user.two_factor_secret)
+            if not totp.verify(str(otp)):
+                return jsonify({"error": "Invalid OTP"}), 401
+        
+        token = create_access_token(identity=user.username)
+        return jsonify({"message": "Login success", "access_token": token, "username": user.username}), 200
+
+    # Normal login - check password
     if bcrypt.check_password_hash(user.password, password):
         if user.two_factor_enabled:
             if not otp:
