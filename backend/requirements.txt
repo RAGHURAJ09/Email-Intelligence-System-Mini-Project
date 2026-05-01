@@ -14,8 +14,6 @@ nltk==3.7
 gunicorn==21.2.0
 
 # ML / Data (Windows Safe)
-numpy
-pandas
 scikit-learn
 
 # Environment Variables

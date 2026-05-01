@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -60,19 +60,11 @@ else:
 
 load_dotenv()
 
-# Basic Flask configuration
-app = Flask(
-    __name__,
-    static_folder="../frontend/dist",
-    static_url_path="/"
-)
+# Basic Flask configuration - API only, no static files
+app = Flask(__name__)
 
 # Allow frontend to access the API
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",   # Vite dev server
-    "http://localhost:3000",   # Alt dev server
-    "http://127.0.0.1:5000",  # Flask prod server
-]
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5000").split(",")
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
 bcrypt = Bcrypt(app)
@@ -113,14 +105,12 @@ def forbidden(error):
 
 @app.route('/')
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return jsonify({"message": "Customer Email AI API is running", "version": "1.0.0"}), 200
 
 @app.errorhandler(404)
 def not_found(error):
-    if request.path.startswith('/api/'):
-        app.logger.warning(f"Not Found: {request.path}")
-        return jsonify({"error": "Not Found", "message": "The requested resource could not be found."}), 404
-    return send_from_directory(app.static_folder, "index.html"), 200
+    app.logger.warning(f"Not Found: {request.path}")
+    return jsonify({"error": "Not Found", "message": "The requested resource could not be found."}), 404
 
 @app.errorhandler(Exception)
 def handle_exception(e):
