@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../utils/supabase";
 import { playSound } from "../utils/soundEffects";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "../config";
 
 export default function UpdatePassword() {
   const [password, setPassword] = useState("");
@@ -38,7 +39,7 @@ export default function UpdatePassword() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/reset-password", {
+      const res = await fetch(`${API_BASE}/api/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),

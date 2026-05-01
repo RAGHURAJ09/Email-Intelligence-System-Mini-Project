@@ -41,8 +41,9 @@ load_dotenv()
 # setup flask app
 app = Flask(__name__)
 
-# cors setup
-origins = ["http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5000"]
+# cors setup - use FRONTEND_URL env variable
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+origins = [frontend_url, "http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:5173"]
 CORS(app, origins=origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
 
 bcrypt = Bcrypt(app)
@@ -315,6 +316,10 @@ def get_feedback_text(intent, priority, sentiment):
 @app.route('/')
 def home():
     return jsonify({"message": "Email AI API running"}), 200
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"}), 200
 
 @app.route("/api/signup", methods=["POST"])
 def signup():
@@ -783,4 +788,5 @@ with app.app_context():
     print("DB ready")
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    port = int(os.getenv("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)
