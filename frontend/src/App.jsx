@@ -15,8 +15,7 @@ import History from "./pages/History";
 import Hero from "./components/Hero";
 import NeuralBackground from "./components/NeuralBackground";
 import { BackgroundProvider } from "./context/BackgroundContext";
-
-
+import API_BASE from "./config";
 import { supabase } from "./utils/supabase";
 
 export default function App() {
@@ -31,7 +30,7 @@ export default function App() {
           const currentUser = localStorage.getItem('user');
           if (currentToken && currentUser === email) return;
 
-          const res = await fetch(`http://127.0.0.1:5000/api/login`, {
+          const res = await fetch(`${API_BASE}/api/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: email, is_oauth: true })

@@ -356,7 +356,7 @@ export default function Home() {
                         <div>
                           <span style={{ color: '#94a3b8', fontSize: '13px', display: 'block', marginBottom: '8px' }}>DETECTED TONES</span>
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            {result.detailed_feedback.tone_descriptors.map((tone, idx) => (
+                            {result.detailed_feedback?.tone_descriptors?.map((tone, idx) => (
                               <span key={idx} style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', color: '#e2e8f0', textTransform: 'capitalize' }}>
                                 {tone}
                               </span>
@@ -367,7 +367,7 @@ export default function Home() {
                         <div>
                           <span style={{ color: '#94a3b8', fontSize: '13px', display: 'block', marginBottom: '8px' }}>ACTION ITEMS</span>
                           <ul style={{ margin: 0, paddingLeft: '20px', color: '#e2e8f0', fontSize: '15px', lineHeight: '1.6' }}>
-                            {result.detailed_feedback.action_items.map((item, idx) => (
+                            {result.detailed_feedback?.action_items?.map((item, idx) => (
                               <li key={idx} style={{ marginBottom: '6px' }}>{item}</li>
                             ))}
                           </ul>
