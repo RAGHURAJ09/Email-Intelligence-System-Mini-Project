@@ -22,18 +22,18 @@ from io import BytesIO
 import base64
 import pyotp
 import nltk
+import warnings
+warnings.filterwarnings('ignore')
+
 from nltk.stem import WordNetLemmatizer
 
-# Lazy load stopwords to avoid startup hang
-stop_words = None
+# Disable NLTK data download attempts at startup
+import os
+os.environ['NLTK_DATA'] = ''
+
+# Lazy load stopwords - no download, just use empty set
+stop_words = set()
 def get_stop_words():
-    global stop_words
-    if stop_words is None:
-        try:
-            from nltk.corpus import stopwords as sw
-            stop_words = set(sw.words('english'))
-        except:
-            stop_words = set()
     return stop_words
 
 load_dotenv()
@@ -98,19 +98,6 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
 app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 mail = Mail(app)
-
-# download nltk data
-try:
-    try:
-        nltk.data.find('corpora/stopwords')
-    except:
-        nltk.download('stopwords', quiet=True)
-    try:
-        nltk.data.find('corpora/wordnet')
-    except:
-        nltk.download('wordnet', quiet=True)
-except Exception as e:
-    print(f"NLTK Download error: {e}")
 
 # load ML models
 intent_model = None
@@ -784,8 +771,11 @@ def correct_record():
     return jsonify({"message": "Corrected"}), 200
 
 with app.app_context():
-    db.create_all()
-    print("DB ready")
+    try:
+        db.create_all()
+        print("DB ready")
+    except Exception as e:
+        print(f"DB init warning: {e}")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
