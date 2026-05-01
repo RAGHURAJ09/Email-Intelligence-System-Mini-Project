@@ -67,7 +67,10 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 jwt = JWTManager(app)
 
 # database setup
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+db_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -733,24 +736,24 @@ def correct_record():
 
     return jsonify({"message": "Corrected"}), 200
 
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-        
-        try:
-            from sqlalchemy import text
-            with db.engine.connect() as conn:
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100)'))
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP'))
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT'))
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS fullname VARCHAR(150)'))
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS bio TEXT'))
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(32)'))
-                conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false'))
-                conn.execute(text('ALTER TABLE email_history ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT false'))
-                conn.commit()
-            print("DB ready")
-        except Exception as e:
-            print(f"Migration: {e}")
+with app.app_context():
+    db.create_all()
     
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100)'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS fullname VARCHAR(150)'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS bio TEXT'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(32)'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false'))
+            conn.execute(text('ALTER TABLE email_history ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT false'))
+            conn.commit()
+        print("DB ready")
+    except Exception as e:
+        print(f"Migration: {e}")
+
+if __name__ == "__main__":
     app.run(debug=False)
