@@ -48,7 +48,7 @@ FRONTEND_DIST = os.path.join(os.path.dirname(__file__), 'dist')
 # cors setup - allow all origins for single service deployment
 # Update frontends origins as needed
 frontend_url = os.getenv("FRONTEND_URL", "")
-origins = [frontend_url] if frontend_url else ["*"]
+origins = [url.strip() for url in frontend_url.split(",")] if frontend_url else ["*"]
 CORS(app, origins=origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
 
 bcrypt = Bcrypt(app)
@@ -204,16 +204,46 @@ def preprocess(text):
 def check_spam_keywords(text):
     text_lower = text.lower()
     spam_words = ['you have been selected', 'lucky winner', 'claim your prize', 'free prize',
-        'click here', 'act fast', 'offer expires', 'congratulations', 'million dollar',
+        'click here', 'click link', 'click to', 'act fast', 'offer expires', 'congratulations', 'million dollar',
         'wire transfer', 'nigerian prince', 'make money fast', 'free gift', 'winner',
         'verify your identity', 'limited time offer', 'earn money from home', 'guaranteed income',
-        'lottery', 'funds', 'inheritance', 'bonus', 'casino', 'investment']
+        'lottery', 'funds', 'inheritance', 'bonus', 'casino', 'investment', 'account will be closed',
+        'urgent', 'verify your account', 'confirm your identity', 'your account has been',
+        'click now', 'act now', 'limited time', 'hurry', 'don\'t miss', 'free iphone', 'free gift card',
+        'you won', 'selected as', 'winner of', 'prize claim', 'bank details', 'confirm delivery',
+        'package is waiting', 'waiting for you', 'claim now', 'exclusive offer',
+        'get rich', 'quick money', 'make money', 'per week', 'per month', 'work from home',
+        'gift card', 'winner', 'free gift', 'double your money', 'bitcoin', 'crypto',
+        'money back guarantee', 'risk free', 'no risk', 'investment opportunity',
+        'earn cash', 'cash prize', 'prize money', 'winning prize', 'congratulations winner',
+        'amazon gift', 'walmart gift', 'free reward', 'reward card', 'claim your']
     
     count = sum(1 for word in spam_words if word in text_lower)
     return count >= 1
 
+def calculate_keyword_confidence(text_lower, matched_keywords):
+    """Calculate confidence based on how many keywords match and their specificity"""
+    if not matched_keywords:
+        return 50.0
+    
+    # Base confidence starts at 60%
+    confidence = 60.0
+    
+    # Add points for each matched keyword (more keywords = higher confidence)
+    keyword_count = len(matched_keywords)
+    confidence += keyword_count * 5
+    
+    # Bonus for longer, more specific phrases
+    for keyword in matched_keywords:
+        if len(keyword.split()) > 1:  # Multi-word phrase
+            confidence += 3
+    
+    # Cap at 100%
+    return min(confidence, 100.0)
+
 def analyze_email(text):
     is_spam = False
+    keyword_matches = []
     
     # spam detection using ML model
     if spam_model and spam_vectorizer:
@@ -227,20 +257,48 @@ def analyze_email(text):
             pass
     
     # keyword fallback
-    if not is_spam:
-        is_spam = check_spam_keywords(text)
-    
     # default values
     intent, priority, sentiment = "Query", "Low", "Neutral"
     confidence = 50.0
+    ml_confidence = 50.0
+    
+    # SPAM DETECTION FIRST - before any other keyword matching
+    text_lower = text.lower()
+    is_spam = False
+    keyword_matches = []
+    
+    # spam detection using ML model
+    if spam_model and spam_vectorizer:
+        try:
+            processed = preprocess(text)
+            spam_vec = spam_vectorizer.transform([processed])
+            pred = spam_model.predict(spam_vec)[0]
+            if pred == 1 or str(pred).lower() == 'spam':
+                is_spam = True
+        except:
+            pass
+    
+    # keyword fallback for spam
+    if not is_spam:
+        is_spam = check_spam_keywords(text)
+    
+    # If spam detected, override immediately - don't fall through to other logic
+    if is_spam:
+        intent = "Spam"
+        priority = "High"
+        sentiment = "Negative"
+        spam_count = sum(1 for word in ['you have been selected', 'lucky winner', 'click here', 'act fast', 'congratulations', 'million', 'free', 'winner', 'gift', 'urgent', 'limited time', 'claim'] if word in text_lower)
+        confidence = 60.0 + (spam_count * 5)
+        confidence = min(confidence, 100.0)
+        return intent, priority, sentiment, confidence, is_spam
     
     # use ML models if available
     if vectorizer and intent_model and sentiment_model and priority_model:
         try:
             vec = vectorizer.transform([text])
             probs = intent_model.predict_proba(vec)[0]
-            max_prob = max(probs)
-            confidence = round(max_prob * 100, 2)
+            max_prob = min(max(probs), 1.0)
+            ml_confidence = round(max_prob * 100, 2)
             
             ml_intent = intent_model.classes_[probs.argmax()]
             sentiment = sentiment_model.predict(vec)[0].capitalize()
@@ -256,43 +314,140 @@ def analyze_email(text):
         except:
             pass
     
-    # keyword matching fallback
-    if confidence < 30:
-        text_lower = text.lower()
-        
-        if 'refund' in text_lower or 'money back' in text_lower:
-            intent, priority, sentiment = "Refund", "High", "Negative"
-            confidence = 90.0
-        elif 'cancel' in text_lower or 'unsubscribe' in text_lower:
-            intent, priority, sentiment = "Cancel", "High", "Neutral"
-            confidence = 85.0
-        elif 'escalate' in text_lower or 'lawyer' in text_lower or 'sue' in text_lower:
-            intent, priority, sentiment = "Escalation", "High", "Negative"
-            confidence = 85.0
-        elif 'broken' in text_lower or 'damaged' in text_lower or 'not working' in text_lower:
-            intent, priority, sentiment = "Issue", "Medium", "Negative"
-            confidence = 80.0
-        elif 'thank' in text_lower or 'great' in text_lower or 'love' in text_lower:
-            intent, priority, sentiment = "Feedback", "Low", "Positive"
-            confidence = 85.0
-        elif 'terrible' in text_lower or 'worst' in text_lower or 'disappointed' in text_lower:
-            intent, priority, sentiment = "Feedback", "Medium", "Negative"
-            confidence = 80.0
-        else:
-            confidence = 60.0
+    # keyword matching fallback - always run to override ML when keywords detected
+    text_lower = text.lower()
     
-    # keyword overrides
+    # Priority 1: Refund - highest priority negative
+    if 'refund' in text_lower or 'money back' in text_lower or 'get my money' in text_lower:
+        intent, priority, sentiment = "Refund", "High", "Negative"
+        keyword_matches = ['refund', 'money back']
+    
+    # Priority 2: Cancel/Unsubscribe
+    elif 'cancel' in text_lower or 'unsubscribe' in text_lower:
+        intent, priority, sentiment = "Cancel", "High", "Neutral"
+        keyword_matches = ['cancel', 'unsubscribe']
+    
+    # Priority 3: Escalation/Legal threats (only if NOT just mentioning "issue" as a general term)
+    elif ('escalate' in text_lower or 'lawyer' in text_lower or 'sue' in text_lower or 'legal action' in text_lower or 'take this to court' in text_lower) and 'issue' not in text_lower:
+        intent, priority, sentiment = "Escalation", "High", "Negative"
+        keyword_matches = ['escalate', 'lawyer', 'legal']
+    
+    # Priority 4: Questions/Queries (before delivery issues and before any other detection)
+    elif 'when will' in text_lower or 'when can' in text_lower or 'when is' in text_lower or 'what is' in text_lower or 'how do' in text_lower or 'how can' in text_lower or 'can you' in text_lower or 'could you' in text_lower or 'would you' in text_lower or 'please tell' in text_lower or 'need to know' in text_lower or 'wondering' in text_lower or 'checking in' in text_lower or 'follow up' in text_lower or 'just checking' in text_lower or 'quick question' in text_lower or 'question about' in text_lower or 'asking about' in text_lower or 'info about' in text_lower or 'information about' in text_lower or 'details about' in text_lower or 'tell me about' in text_lower or 'ask a question' in text_lower or 'just a question' in text_lower or 'wanted to ask' in text_lower:
+        intent, priority, sentiment = "Query", "Low", "Neutral"
+        keyword_matches = ['question', 'when', 'how', 'can you']
+    
+    # Priority 5: STRONG Negative feedback (terrible, worst, disappointed - check BEFORE general negative emotions)
+    elif 'terrible' in text_lower or 'worst' in text_lower or 'disappointed' in text_lower or 'horrible' in text_lower or 'awful' in text_lower or 'miserable' in text_lower or 'pathetic' in text_lower:
+        intent, priority, sentiment = "Feedback", "Medium", "Negative"
+        keyword_matches = ['terrible', 'worst', 'disappointed']
+    
+    # Priority 6: Strong negative emotions (issues) - includes "unhappy" separately
+    elif 'upset' in text_lower or 'frustrated' in text_lower or 'angry' in text_lower or 'furious' in text_lower or 'outraged' in text_lower or 'not acceptable' in text_lower or 'unacceptable' in text_lower or 'unhappy' in text_lower:
+        intent, priority, sentiment = "Issue", "Medium", "Negative"
+        keyword_matches = ['upset', 'angry', 'frustrated']
+    
+    # Priority 7: Issues (broken, damaged, not working, does not work) - but NOT "no problems" or "has problem"
+    elif ('broken' in text_lower or 'damaged' in text_lower or 'not working' in text_lower or 'defective' in text_lower or 'stopped working' in text_lower or 'doesn\'t work' in text_lower or 'does not work' in text_lower or 'not work' in text_lower or 'won\'t work' in text_lower) and 'no problem' not in text_lower:
+        intent, priority, sentiment = "Issue", "Medium", "Negative"
+        keyword_matches = ['broken', 'damaged', 'not working']
+    
+    # Priority 8: Delivery issues
+    elif 'hasn\'t arrived' in text_lower or 'not arrived' in text_lower or 'still waiting' in text_lower or 'delayed' in text_lower or 'late delivery' in text_lower or 'missing package' in text_lower or 'lost package' in text_lower or 'where is my' in text_lower:
+        intent, priority, sentiment = "Issue", "Medium", "Negative"
+        keyword_matches = ['arrived', 'delayed', 'waiting']
+    
+    # Priority 9: Negative - "bad", "poor" (after checking for stronger negatives)
+    elif ' bad ' in text_lower or 'poor' in text_lower:
+        intent, priority, sentiment = "Feedback", "Medium", "Negative"
+        keyword_matches = ['bad', 'poor']
+    
+    # Priority 10: Positive feedback (thank, great, love, excellent, amazing, happy, satisfied, awesome) - AFTER negatives
+    elif 'thank' in text_lower or 'thanks' in text_lower or 'great' in text_lower or 'love' in text_lower or 'excellent' in text_lower or 'amazing' in text_lower or 'happy' in text_lower or 'satisfied' in text_lower or 'awesome' in text_lower or 'wonderful' in text_lower or 'fantastic' in text_lower:
+        intent, priority, sentiment = "Feedback", "Low", "Positive"
+        keyword_matches = ['thank', 'great', 'love', 'happy']
+    
+    # Priority 11: Positive/neutral statements (fine, good, no problems, everything is okay) - AFTER "problem" check
+    elif ('fine' in text_lower and 'not' not in text_lower) or ('no problem' in text_lower or 'no problems' in text_lower) or 'everything is fine' in text_lower or 'all good' in text_lower or 'all is well' in text_lower:
+        intent, priority, sentiment = "Feedback", "Low", "Positive"
+        keyword_matches = ['fine', 'no problem']
+    
+    # Priority 12: Issue with "help" or "support" (only if no other intent matched)
+    elif ('help me' in text_lower or 'need help' in text_lower or 'need assistance' in text_lower or 'need support' in text_lower):
+        intent, priority, sentiment = "Issue", "Medium", "Neutral"
+        keyword_matches = ['help', 'support']
+    
+    # Priority 13: General "issue" keyword ONLY if not already matched by positive patterns
+    elif 'issue' in text_lower or ('problem' in text_lower and 'no problem' not in text_lower):
+        intent, priority, sentiment = "Issue", "Medium", "Negative"
+        keyword_matches = ['issue', 'problem']
+    
+    # Calculate confidence based on keyword matches OR use ML confidence
+    if keyword_matches:
+        confidence = calculate_keyword_confidence(text_lower, keyword_matches)
+    else:
+        # Use ML model confidence if no keywords matched
+        confidence = ml_confidence
+    
+    # Keyword overrides - only run to fix edge cases (check for Feedback FIRST before Issue)
     text_lower = text.lower()
     if 'refund' in text_lower:
         intent, priority, sentiment = "Refund", "High", "Negative"
+        keyword_matches = ['refund']
     elif 'cancel' in text_lower:
         intent, priority, sentiment = "Cancel", "High", "Neutral"
-    elif 'escalate' in text_lower:
+        keyword_matches = ['cancel']
+    elif 'escalate' in text_lower or 'lawyer' in text_lower:
         intent, priority, sentiment = "Escalation", "High", "Negative"
-    elif 'broken' in text_lower or 'problem' in text_lower:
+        keyword_matches = ['escalate', 'lawyer']
+    # Check for negative feedback (terrible, worst, disappointed) BEFORE general negative emotions
+    elif 'terrible' in text_lower or 'worst' in text_lower or 'disappointed' in text_lower:
+        intent = "Feedback"
+        priority = "Medium"
+        sentiment = "Negative"
+        keyword_matches = ['terrible', 'worst']
+    elif 'upset' in text_lower or 'angry' in text_lower or 'frustrated' in text_lower or 'unhappy' in text_lower:
         intent = "Issue"
         priority = "Medium"
         sentiment = "Negative"
+        keyword_matches = ['upset', 'angry']
+    elif ('broken' in text_lower or 'damaged' in text_lower or 'not working' in text_lower or 'hasn\'t arrived' in text_lower or 'not arrived' in text_lower) and sentiment != "Positive":
+        intent = "Issue"
+        priority = "Medium"
+        sentiment = "Negative"
+        keyword_matches = ['broken', 'damaged']
+    elif ('no problem' in text_lower or 'no problems' in text_lower) and sentiment != "Positive":
+        intent = "Feedback"
+        priority = "Low"
+        sentiment = "Positive"
+        keyword_matches = ['no problem']
+    elif ('issue' in text_lower or 'problem' in text_lower) and sentiment != "Positive":
+        intent = "Issue"
+        priority = "Medium"
+        sentiment = "Negative"
+        keyword_matches = ['issue', 'problem']
+    
+    # Override intent to Spam if email is detected as spam
+    if is_spam:
+        intent = "Spam"
+        priority = "High"  # High priority - it's fraud/scam that needs attention
+        sentiment = "Negative"
+        # Calculate spam confidence based on spam keyword matches
+        spam_count = sum(1 for word in ['you have been selected', 'lucky winner', 'click here', 'act fast', 'congratulations', 'million', 'free', 'winner', 'gift', 'urgent', 'limited time', 'claim'] if word in text_lower)
+        confidence = 60.0 + (spam_count * 5)
+        confidence = min(confidence, 100.0)
+    
+    # Final priority enforcement based on intent and sentiment
+    if intent == "Refund" or intent == "Cancel" or intent == "Escalation" or intent == "Spam":
+        priority = "High"
+    elif intent == "Issue":
+        priority = "Medium"
+    elif intent == "Feedback" and sentiment == "Positive":
+        priority = "Low"
+    elif intent == "Feedback":
+        priority = "Medium"
+    elif intent == "Query":
+        priority = "Low"
     
     return intent, priority, sentiment, confidence, is_spam
 
